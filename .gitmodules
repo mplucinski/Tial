@@ -1,0 +1,3 @@
+[submodule "Dependencies/dtl-cpp"]
+	path = Dependencies/dtl-cpp
+	url = https://code.google.com/p/dtl-cpp/
