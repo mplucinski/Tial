@@ -25,8 +25,6 @@
 
 #include <vector>
 
-#define TIAL_MODULE "Test/Utility::ArgumentParser"
-
 [[Tial::Testing::Typedef]] namespace Testing = Tial::Testing;
 [[Tial::Testing::Typedef]] namespace Check = Tial::Testing::Check;
 

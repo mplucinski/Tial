@@ -21,7 +21,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
-#include "tialtesting_export.h"
+#include "TialTestingExport.hpp"
 
 #include <functional>
 #include <future>

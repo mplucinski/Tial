@@ -21,43 +21,5 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
-#include <iostream>
-#include <experimental/string_view>
-#include "Main.hpp"
-
-namespace Tial {
-namespace Testing {
-
-template<typename Suite, typename Case>
-void runCase(const Main::SingleCaseCaller &singleCaseCaller) {
-	Case testCase;
-	testCase._caller = singleCaseCaller;
-	testCase._runTestCase();
-}
-
-template<typename Suite>
-void runCases(const Main::SingleCaseCaller &) {}
-
-template<typename Suite, typename Case, typename... Cases>
-void runCases(const Main::SingleCaseCaller &singleCaseCaller) {
-	runCase<Suite, Case>(singleCaseCaller);
-	runCases<Suite, Cases...>(singleCaseCaller);
-}
-
-template<typename... Cases>
-class Suite {
-	std::string name;
-public:
-	Suite(const std::experimental::string_view &name): name(name) {
-		Tial::Testing::Main::instance().registerTestSuiteFunction(
-			std::bind(&Suite<Cases...>::run, this, std::placeholders::_1), name
-		);
-	}
-
-	void run(const Main::SingleCaseCaller &singleCaseCaller) {
-		runCases<Suite<Cases...>, Cases...>(singleCaseCaller);
-	}
-};
-
-}
-}
+#define TIAL_EXPAND_MODULE(file) (file)
+#define TIAL_CURRENT_MODULE TIAL_BASE_MODULE "::" TIAL_EXPAND_MODULE(__FILE__)

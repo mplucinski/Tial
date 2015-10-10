@@ -21,7 +21,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
-#include "tialtesting_export.h"
+#include "TialTestingExport.hpp"
 #include "Thread.hpp"
 
 #include <map>
@@ -30,7 +30,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include <dtl/dtl.hpp>
+#include "dtl/dtl.hpp"
 
 #include <TialUtility/TialUtility.hpp>
 
@@ -387,7 +387,7 @@ void throwsEqual(
 		LOGD << point << " [[ ThrowEqual (" << strInstance.data() << ") ]] " << expression.data();
 
 	_throws<EXCEPTION, decltype(fn), void>(point, expression, fn, [&](const EXCEPTION &exception) {
-		if(exception != instance)				
+		if(exception != instance)
 			_catchWrongException(point, expression, "Thrown not-equal exception"_sv, &exception);
 	}, ThrowsCheckMode::ExactTypeException);
 }
@@ -418,7 +418,6 @@ void setChecker(Checker checker);
 }
 }
 }
-
 
 #define TIAL_TESTING_POINTINFO \
 	(::Tial::Testing::Check::PointInfo(__FILE__, __LINE__, _caseName()))

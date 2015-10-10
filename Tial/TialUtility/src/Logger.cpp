@@ -180,11 +180,11 @@ template<> TIALUTILITY_EXPORT std::experimental::string_view timePeriod<std::chr
 }
 
 Tial::Utility::Logger::Message::Message(
-	const std::string &file, unsigned int line, const std::string &function,
-	const std::string &prettyFunction, Level level, const std::string &module,
+	const std::experimental::string_view &file, unsigned int line, const std::experimental::string_view &function,
+	const std::experimental::string_view &prettyFunction, Level level, const std::experimental::string_view &module,
 	const TimePoint &time
-): file(file), line(line), function(function), prettyFunction(prettyFunction),
-	level(level), module(module), time(time) {}
+): file(file.to_string()), line(line), function(function.to_string()), prettyFunction(prettyFunction.to_string()),
+	level(level), module(module.to_string()), time(time) {}
 
 static std::string dots = "[...]";
 
@@ -225,8 +225,8 @@ Tial::Utility::Logger::Stream &Tial::Utility::Logger::Message::out() {
 
 std::unordered_map<std::string, Tial::Utility::Logger::Level> levels;
 
-bool Tial::Utility::Logger::toBeLoggedRuntime(Level level, const std::string &module) {
-	auto moduleLevel = levels.find(module);
+bool Tial::Utility::Logger::toBeLoggedRuntime(Level level, const std::experimental::string_view &module) {
+	auto moduleLevel = levels.find(module.to_string());
 	if(moduleLevel == levels.end()) {
 		auto sep = module.rfind("::");
 		if(sep == module.npos)
@@ -241,8 +241,8 @@ void Tial::Utility::Logger::setLoggingLevel(Level level) {
 	globalLevel = level;
 }
 
-void Tial::Utility::Logger::setLoggingLevel(Level level, const std::string &module) {
-	levels[module] = level;
+void Tial::Utility::Logger::setLoggingLevel(Level level, const std::experimental::string_view &module) {
+	levels[module.to_string()] = level;
 }
 
 Tial::Utility::Logger::Handler::Handler(Level level): level(level) {}

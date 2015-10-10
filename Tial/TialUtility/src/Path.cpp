@@ -24,7 +24,7 @@
 
 #include "Logger.hpp"
 
-#define TIAL_MODULE "Tial::Utility::Path"
+#define TIAL_MODULE "Tial::Utility::ArgumentParser"
 
 const std::string Tial::Utility::PathFormatDescriptors::_UnixStyle::currentDirectory = ".";
 const std::string Tial::Utility::PathFormatDescriptors::_UnixStyle::parentDirectory = "..";

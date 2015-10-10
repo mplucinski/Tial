@@ -22,8 +22,6 @@
  */
 #include <TialTesting/TialTesting.hpp>
 
-#define TIAL_MODULE "Test/Tial::Testing"
-
 [[Tial::Testing::Typedef]] namespace Testing = Tial::Testing;
 [[Tial::Testing::Typedef]] namespace Check = Tial::Testing::Check;
 

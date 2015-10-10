@@ -21,7 +21,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
-#include "tialutility_export.h"
+#include "TialUtilityExport.hpp"
 #include "Language.hpp"
 
 #include <exception>
@@ -38,7 +38,7 @@ class StandardException;
 class TIALUTILITY_EXPORT Exception: public std::exception {
 public:
 	class CommonArgs {
-		std::string _component;
+		std::string _module;
 		std::string _file;
 		unsigned int _line;
 		std::string _function;
@@ -46,16 +46,15 @@ public:
 	public:
 		CommonArgs();
 		CommonArgs(
-			const std::string &component, const std::string &file, unsigned int line, const std::string &function
+			const std::string &module, const std::string &file, unsigned int line, const std::string &function
 		);
-		const std::string &component() const noexcept;
+		const std::string &module() const noexcept;
 		const std::string &file() const noexcept;
 		const unsigned int &line() const noexcept;
 		const std::string &function() const noexcept;
 	};
 
 private:
-	std::string _component;
 	std::string _message;
 	std::string _fullMessage;
 	CommonArgs _commonArgs;
@@ -65,7 +64,7 @@ protected:
 public:
 	Exception(const std::string &message);
 
-	const std::string &component() const noexcept;
+	const std::string &module() const noexcept;
 	const std::string &file() const noexcept;
 	const unsigned int &line() const noexcept;
 	const std::string &function() const noexcept;
@@ -130,7 +129,12 @@ public:
 }
 
 #define TIAL_UTILITY_EXCEPTION_COMMONARGS \
-	(::Tial::Utility::Exception::CommonArgs((TIAL_MODULE), (__FILE__), (__LINE__), (TIAL_UTILITY_LANGUAGE_FUNCTION_SIGNATURE)))
+	(::Tial::Utility::Exception::CommonArgs( \
+		(TIAL_UTILITY_LANGUAGE_CURRENT_MODULE.to_string()), \
+		(__FILE__), \
+		(__LINE__), \
+		(TIAL_UTILITY_LANGUAGE_FUNCTION_SIGNATURE) \
+	))
 
 #define TIAL_UTILITY_THROW_HOOK_TRIGGER(log) \
 	(::Tial::Utility::ThrowHookTrigger(log))

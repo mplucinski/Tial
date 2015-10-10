@@ -144,7 +144,7 @@ bool Tial::Testing::Check::catchTestExceptions(const std::experimental::string_v
 		LOGC << "Exception caught during test processing: " << Utility::ABI::demangle(typeid(exception).name());
 		LOGC << "\tTest: " << caseName;
 		LOGC << "\tLocation: " << exception.file().c_str() << ":" << exception.line();
-		LOGC << "\tComponent: " << exception.component().c_str();
+		LOGC << "\tModule: " << exception.module().c_str();
 		LOGC << "\tFunction: " << exception.function().c_str();
 		LOGC << "\tMessage: " << exception.message().c_str();
 	} catch(const std::exception &exception) {

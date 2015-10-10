@@ -25,7 +25,7 @@
 
 #include <stdexcept>
 
-#define TIAL_MODULE "Test/Tial::Utility::Exception"
+#define TIAL_MODULE "Tial::Utility::Exception/Test"
 
 [[Tial::Testing::Typedef]] namespace Testing = Tial::Testing;
 [[Tial::Testing::Typedef]] namespace Check = Tial::Testing::Check;
@@ -46,7 +46,7 @@ class [[Testing::Case]] ThrowAndCatchDirectly {
 		try {
 			throwException();
 		} catch(const Tial::Utility::Exception &e) {
-			[[Check::Verify]] e.component() == TIAL_MODULE;
+			[[Check::Verify]] e.module() == "Tial::Utility::Exception/Test";
 			[[Check::Verify]] e.file().substr(e.file().size()-13) == "Exception.cpp";
 			[[Check::Verify]] e.line() == 37u;
 			[[Check::Verify]] e.function() == "void Tial::Utility::throwException()";
@@ -71,7 +71,7 @@ class [[Testing::Case]] ThrowStdAndCatch {
 		try {
 			throwStdException();
 		} catch(const Tial::Utility::Exception &e) {
-			[[Check::Verify]] e.component() == TIAL_MODULE;
+			[[Check::Verify]] e.module() == "Tial::Utility::Exception/Test";
 			[[Check::Verify]] e.file().substr(e.file().size()-13) == "Exception.cpp";
 			[[Check::Verify]] e.line() == 41u;
 			[[Check::Verify]] e.function() == "void Tial::Utility::throwStdException()";
