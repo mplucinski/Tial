@@ -33,8 +33,6 @@
 #error "Platform not supported"
 #endif
 
-#define TIAL_MODULE "Tial::Utility::ABI"
-
 std::string Tial::Utility::ABI::demangle(const std::string &name) {
 #if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	int status;

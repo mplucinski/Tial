@@ -21,7 +21,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
-#include "tialtesting_export.h"
+#include "TialTestingExport.hpp"
 #include "Thread.hpp"
 
 #include <map>
@@ -232,36 +232,36 @@ template<typename EXCEPTION> static void _catchWrongException(
 	});
 }
 
-template<typename FUNCTION, typename T> typename std::enable_if<!std::is_void<T>::value, T>::type
-_tryBlock(const FUNCTION &fn, const std::function<void()> &fn2) {
-	T result = fn();
+template<typename RESULT> typename std::enable_if<!std::is_void<RESULT>::value, RESULT>::type
+_tryBlock(const std::function<RESULT()> &fn, const std::function<void()> &fn2) {
+	RESULT result = fn();
 	fn2();
 	return result;
 }
 
-template<typename FUNCTION, typename T> typename std::enable_if<std::is_void<T>::value, T>::type
-_tryBlock(const FUNCTION &fn, const std::function<void()> &fn2) {
+template<typename RESULT> typename std::enable_if<std::is_void<RESULT>::value, RESULT>::type
+_tryBlock(const std::function<RESULT()> &fn, const std::function<void()> &fn2) {
 	fn();
 	fn2();
 }
 
-template<typename T>
-T defaultResult() {
-	return T();
+template<typename RESULT>
+RESULT defaultResult() {
+	return RESULT();
 }
 
-template<typename EXCEPTION, typename FUNCTION, typename RETURN> typename std::enable_if<
+template<typename EXCEPTION, typename RESULT> typename std::enable_if<
 	std::is_same<EXCEPTION, std::exception>::value,
-	RETURN 
+	RESULT
 >::type _catch(
-	const FUNCTION &fn,
+	const std::function<RESULT()> &fn,
 	const std::function<void()> &noException,
 	const std::function<void(const EXCEPTION &)> &specifiedException,
 	const std::function<void(const std::exception &)> &,
 	const std::function<void()> &unknownException
 ) {
 	try {
-		return _tryBlock<FUNCTION, RETURN>(fn, noException);
+		return _tryBlock<RESULT>(fn, noException);
 	} catch(const EXCEPTION &exception) {
 		specifiedException(exception);
 	} catch(const Exceptions::CheckFailure &) {
@@ -269,21 +269,21 @@ template<typename EXCEPTION, typename FUNCTION, typename RETURN> typename std::e
 	} catch(...) {
 		unknownException();
 	}
-	return defaultResult<RETURN>();
+	return defaultResult<RESULT>();
 }
 
-template<typename EXCEPTION, typename FUNCTION, typename RETURN> typename std::enable_if<
+template<typename EXCEPTION, typename RESULT> typename std::enable_if<
 	std::is_same<EXCEPTION, _NoException>::value,
-	RETURN
+	RESULT
 >::type _catch(
-	const FUNCTION &fn,
+	const std::function<RESULT()> &fn,
 	const std::function<void()> &noException,
 	const std::function<void(const EXCEPTION &)> &,
 	const std::function<void(const std::exception &)> &standardException,
 	const std::function<void()> &unknownException
 ) {
 	try {
-		return _tryBlock<FUNCTION, RETURN>(fn, noException);
+		return _tryBlock<RESULT>(fn, noException);
 	} catch(const std::exception &exception) {
 		standardException(exception);
 	} catch(const Exceptions::CheckFailure &) {
@@ -291,21 +291,21 @@ template<typename EXCEPTION, typename FUNCTION, typename RETURN> typename std::e
 	} catch(...) {
 		unknownException();
 	}
-	return defaultResult<RETURN>();
+	return defaultResult<RESULT>();
 }
 
-template<typename EXCEPTION, typename FUNCTION, typename RETURN> typename std::enable_if<
+template<typename EXCEPTION, typename RESULT> typename std::enable_if<
 	!std::is_same<EXCEPTION, _NoException>::value && !std::is_same<EXCEPTION, std::exception>::value,
-	RETURN
+	RESULT
 >::type _catch(
-	const FUNCTION &fn,
+	const std::function<RESULT()> &fn,
 	const std::function<void()> &noException,
 	const std::function<void(const EXCEPTION &)> &specifiedException,
 	const std::function<void(const std::exception &)> &standardException,
 	const std::function<void()> &unknownException
 ) {
 	try {
-		return _tryBlock<FUNCTION, RETURN>(fn, noException);
+		return _tryBlock<RESULT>(fn, noException);
 	} catch(const EXCEPTION &exception) {
 		specifiedException(exception);
 	} catch(const std::exception &exception) {
@@ -315,6 +315,7 @@ template<typename EXCEPTION, typename FUNCTION, typename RETURN> typename std::e
 	} catch(...) {
 		unknownException();
 	}
+	return defaultResult<RESULT>();
 }
 
 enum class ThrowsCheckMode {
@@ -323,14 +324,14 @@ enum class ThrowsCheckMode {
 	ExactTypeException,
 };
 
-template<typename EXCEPTION, typename FUNCTION, typename RETURN> RETURN _throws(
+template<typename EXCEPTION, typename RESULT> RESULT _throws(
 	const PointInfo &point,
 	const std::experimental::string_view &expression,
-	const FUNCTION &fn,
+	const std::function<RESULT()> &fn,
 	const std::function<void(const EXCEPTION &exception)> exactTypeException,
 	const ThrowsCheckMode mode
 ) {
-	return _catch<EXCEPTION, FUNCTION, RETURN>(
+	return _catch<EXCEPTION, RESULT>(
 		fn,
 		[&](){ // no exception
 			if(mode != ThrowsCheckMode::NoException)
@@ -366,7 +367,7 @@ template<typename EXCEPTION> void throws(
 	if(printAll())
 		LOGD << point << " [[ Throw" << (exact ? "Exact" : "") << " ]] " << expression.data();
 
-	_throws<EXCEPTION, decltype(fn), void>(
+	_throws<EXCEPTION, void>(
 			point,
 			expression,
 			fn,
@@ -386,22 +387,22 @@ void throwsEqual(
 	if(printAll())
 		LOGD << point << " [[ ThrowEqual (" << strInstance.data() << ") ]] " << expression.data();
 
-	_throws<EXCEPTION, decltype(fn), void>(point, expression, fn, [&](const EXCEPTION &exception) {
-		if(exception != instance)				
+	_throws<EXCEPTION, void>(point, expression, fn, [&](const EXCEPTION &exception) {
+		if(exception != instance)
 			_catchWrongException(point, expression, "Thrown not-equal exception"_sv, &exception);
 	}, ThrowsCheckMode::ExactTypeException);
 }
 
-template<typename T>
-auto noThrows(
+template<typename RESULT>
+RESULT noThrows(
 	const PointInfo &point,
 	const std::experimental::string_view &expression,
-	const T &fn
-) -> decltype(fn()) {
+	const std::function<RESULT()> &fn
+) {
 	if(printAll())
 		LOGD << point << " [[ NoThrow ]] " << expression.data();
 
-	return _throws<_NoException, decltype(fn), decltype(fn())>(point, expression, fn, [](...){}, ThrowsCheckMode::NoException);
+	return _throws<_NoException, RESULT>(point, expression, fn, [](...){}, ThrowsCheckMode::NoException);
 }
 
 bool catchTestExceptions(const std::experimental::string_view &caseName, const std::function<void()> &fn);
@@ -418,7 +419,6 @@ void setChecker(Checker checker);
 }
 }
 }
-
 
 #define TIAL_TESTING_POINTINFO \
 	(::Tial::Testing::Check::PointInfo(__FILE__, __LINE__, _caseName()))

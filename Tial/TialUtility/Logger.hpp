@@ -21,7 +21,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
-#include "tialutility_export.h"
+#include "TialUtilityExport.hpp"
 #include "Language.hpp"
 
 #include <chrono>
@@ -133,8 +133,8 @@ public:
 	std::string module;
 	TimePoint time;
 
-	Message(const std::string &file, unsigned int line, const std::string &function,
-		const std::string &prettyFunction, Level level, const std::string &module,
+	Message(const std::experimental::string_view &file, unsigned int line, const std::experimental::string_view &function,
+		const std::experimental::string_view &prettyFunction, Level level, const std::experimental::string_view &module,
 		const TimePoint &time);
 	~Message();
 	Stream &out();
@@ -149,9 +149,9 @@ constexpr bool toBeLoggedCompile(Level level) {
 #endif
 }
 
-TIALUTILITY_EXPORT bool toBeLoggedRuntime(Level level, const std::string &module);
+TIALUTILITY_EXPORT bool toBeLoggedRuntime(Level level, const std::experimental::string_view &module);
 TIALUTILITY_EXPORT void setLoggingLevel(Level level);
-TIALUTILITY_EXPORT void setLoggingLevel(Level level, const std::string &module);
+TIALUTILITY_EXPORT void setLoggingLevel(Level level, const std::experimental::string_view &module);
 
 class TIALUTILITY_EXPORT Handler {
 	Level level;
@@ -198,7 +198,7 @@ public:
 	).out()
 
 #define TIAL_UTILITY_LOGGER_LOG(level) \
-	TIAL_UTILITY_LOGGER_LOG_INTERNAL(__FILE__, __LINE__, __FUNCTION__, TIAL_UTILITY_LANGUAGE_FUNCTION_SIGNATURE, level, TIAL_MODULE)
+	TIAL_UTILITY_LOGGER_LOG_INTERNAL(__FILE__, __LINE__, __FUNCTION__, TIAL_UTILITY_LANGUAGE_FUNCTION_SIGNATURE, level, TIAL_UTILITY_LANGUAGE_CURRENT_MODULE)
 
 #define TIAL_UTILITY_LOGGER_LOG_CRITICAL \
 		TIAL_UTILITY_LOGGER_LOG(::Tial::Utility::Logger::Level::Critical)

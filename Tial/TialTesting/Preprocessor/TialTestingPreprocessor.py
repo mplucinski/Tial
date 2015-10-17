@@ -184,7 +184,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 		Regex('no_throw',
 			re.compile(r'\[\[(?P<attr>[^\]]+NoThrow)\]\](?P<expr>[^;]+);', re.DOTALL),
 			lambda m: r'''/* [[{attr}]] {expr_c} */
-::Tial::Testing::Check::noThrows(TIAL_TESTING_POINTINFO, "{expr_s}", [&](){{ return {expr}; }});'''.format(
+::Tial::Testing::Check::noThrows<typename std::decay<decltype({expr})>::type>(TIAL_TESTING_POINTINFO, "{expr_s}", [&]()->typename std::decay<decltype({expr})>::type{{ return {expr}; }});'''.format(
 				attr=m.group('attr'),
 				expr=m.group('expr'),
 				expr_c=escape_comment(m.group('expr')),

@@ -23,7 +23,7 @@
 #include <TialTesting/TialTesting.hpp>
 #include <TialUtility/TialUtility.hpp>
 
-#define TIAL_MODULE "Test/Tial::Utility::String"
+#define TIAL_MODULE "Tial::Utility::Strings/Test"
 
 [[Tial::Testing::Typedef]] namespace Testing = Tial::Testing;
 [[Tial::Testing::Typedef]] namespace Check = Tial::Testing::Check;

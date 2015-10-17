@@ -21,11 +21,13 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
+#include "TialUtilityExport.hpp"
 #include <memory>
 #include <typeindex>
 #include <utility>
 #include <experimental/string_view>
 
+#include <boost/current_function.hpp>
 #include <boost/predef.h>
 
 namespace Tial {
@@ -84,13 +86,9 @@ namespace Cast = Utility::Language::Cast;
 
 #define unused(x) ((void)x);
 
-#if (BOOST_COMP_CLANG || BOOST_COMP_GNUC)
-#define TIAL_UTILITY_LANGUAGE_FUNCTION_SIGNATURE __PRETTY_FUNCTION__
-#elif (BOOST_COMP_MSVC)
-#define TIAL_UTILITY_LANGUAGE_FUNCTION_SIGNATURE __FUNCSIG__
-#else
-#error "Compiler not supported"
-#endif
+#define TIAL_UTILITY_LANGUAGE_FUNCTION_SIGNATURE BOOST_CURRENT_FUNCTION
+
+#define TIAL_UTILITY_LANGUAGE_CURRENT_MODULE (std::experimental::string_view(TIAL_MODULE))
 
 #ifndef TIAL_UTILITY_LANGUAGE_DISABLE_STRING_VIEW_LITERAL
 

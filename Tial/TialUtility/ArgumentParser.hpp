@@ -21,7 +21,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
-#include "tialutility_export.h"
+#include "TialUtilityExport.hpp"
 #include "Exception.hpp"
 #include <iostream>
 #include <memory>
@@ -32,7 +32,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 
-#define TIAL_MODULE "Utility::ArgumentParser"
+#define TIAL_MODULE "Tial::Utility::ArgumentParser"
 
 namespace Tial {
 namespace Utility {

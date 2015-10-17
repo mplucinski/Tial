@@ -23,6 +23,7 @@
 #pragma once
 #include <iostream>
 #include <experimental/string_view>
+#include "Main.hpp"
 
 namespace Tial {
 namespace Testing {

@@ -21,7 +21,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
-#include "tialutility_export.h"
+#include "TialUtilityExport.hpp"
 
 #include <limits>
 #include <mutex>
@@ -35,7 +35,7 @@
 #include "Logger.hpp"
 #include "Wildcards.hpp"
 
-#define TIAL_MODULE "Tial::Utility::Path"
+#define TIAL_MODULE "Tial::Utility::ArgumentParser"
 
 namespace Tial {
 namespace Utility {

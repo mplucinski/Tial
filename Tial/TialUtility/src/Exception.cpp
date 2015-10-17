@@ -35,11 +35,11 @@
 Tial::Utility::Exception::CommonArgs::CommonArgs(): _line(0) {}
 
 Tial::Utility::Exception::CommonArgs::CommonArgs(
-	const std::string &component, const std::string &file, unsigned int line, const std::string &function
-): _component(component), _file(file), _line(line), _function(function) {}
+	const std::string &module, const std::string &file, unsigned int line, const std::string &function
+): _module(module), _file(file), _line(line), _function(function) {}
 
-const std::string &Tial::Utility::Exception::CommonArgs::component() const noexcept {
-	return _component;
+const std::string &Tial::Utility::Exception::CommonArgs::module() const noexcept {
+	return _module;
 }
 
 const std::string &Tial::Utility::Exception::CommonArgs::file() const noexcept {
@@ -57,15 +57,15 @@ const std::string &Tial::Utility::Exception::CommonArgs::function() const noexce
 void Tial::Utility::Exception::setCommonArgs(const CommonArgs &commonArgs) {
 	_commonArgs = commonArgs;
 	std::ostringstream oss;
-	oss << file() << ":" << line() << " " << component() << " " << function() << " " << message();
+	oss << file() << ":" << line() << " " << module() << " " << function() << " " << message();
 	_fullMessage = oss.str();
 }
 
 Tial::Utility::Exception::Exception(const std::string &message)
 	: _message(message), _fullMessage(message) {}
 
-const std::string &Tial::Utility::Exception::component() const noexcept {
-	return _commonArgs.component();
+const std::string &Tial::Utility::Exception::module() const noexcept {
+	return _commonArgs.module();
 }
 
 const std::string &Tial::Utility::Exception::file() const noexcept {
@@ -100,7 +100,7 @@ void Tial::Utility::installExceptionThrowHook(const ThrowHook &hook) {
 void Tial::Utility::_triggerThrowHooks(const Exception &exception, const bool log) {
 	TIAL_UTILITY_LOGGER_LOG(log ? Logger::Level::Warning : Logger::Level::Nice3) << "Exception: " << exception.message();
 	TIAL_UTILITY_LOGGER_LOG(log ? Logger::Level::Warning : Logger::Level::Nice3) << exception.file() << ":"
-			<< exception.line() << " " << exception.component() << " " << exception.function() << " " << exception.message();
+			<< exception.line() << " " << exception.module() << " " << exception.function() << " " << exception.message();
 	std::vector <std::string> st;
 	LOGN3 << "Stack trace:\n" << (
 			ABI::currentStackTrace([&st](const std::string &s) { st.push_back(s); }),

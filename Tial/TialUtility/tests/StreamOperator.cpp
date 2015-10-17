@@ -27,8 +27,6 @@
 #include <unordered_set>
 #include <vector>
 
-#define TIAL_MODULE "Test/Tial::Utility::StreamOperator"
-
 [[Tial::Testing::Typedef]] namespace Testing = Tial::Testing;
 [[Tial::Testing::Typedef]] namespace Check = Tial::Testing::Check;
 
