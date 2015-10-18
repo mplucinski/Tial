@@ -427,7 +427,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 
 		open(str(self.oufile), 'wb').write(self.source.encode('utf-8'))
 
-if __name__ == '__main__':
+def main():
 	parser = argparse.ArgumentParser(description='Preprocessor for test sources')
 	parser.add_argument('input', nargs=1, help='Input file')
 	parser.add_argument('-o', '--output', required=True, nargs=1, help='Output file')
@@ -438,3 +438,5 @@ if __name__ == '__main__':
 
 	p = Preprocessor(infile, oufile)
 	p.process()
+if __name__ == '__main__':
+	main()
