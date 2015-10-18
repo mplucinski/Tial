@@ -85,6 +85,22 @@ class Regex:
 			name=self.name, regex=self.regex, replacement=self.replacement
 		)
 
+class RegexCollection:
+	def __init__(self, regeces):
+		self.regeces = regeces
+		for i in self.regeces:
+			i.regex = re.compile(i.regex, re.DOTALL)
+
+	def search(self, source, pos):
+		match = None
+		regex = None
+		for r in self.regeces:
+			m = r.regex.search(source, pos)
+			if m and (not match or match.start() > m.start()):
+				match = m
+				regex = r
+		return (match, regex)
+
 class Preprocessor:
 	attr_typedef = 'Tial::Testing::Typedef'
 	attr_suite = 'Tial::Testing::Suite'
@@ -99,17 +115,17 @@ class Preprocessor:
 	attr_no_throw = 'Tial::Testing::Check::NoThrow'
 	attr_data = 'Tial::Testing::Data'
 
-	res = [
+	res = RegexCollection([
 		Regex('attr_ns_alias',
-			re.compile(r'\[\[\s*'+attr_typedef+'\s*\]\]\s*namespace\s+(?P<alias>\S+)\s*=\s*(?P<original>\S+)\s*;', re.DOTALL),
+			r'\[\[\s*'+attr_typedef+'\s*\]\]\s*namespace\s+(?P<alias>\S+)\s*=\s*(?P<original>\S+)\s*;',
 			r'/* '+attr_typedef+' */ namespace \g<alias> = \g<original>;'
 		),
 		Regex('attr_ns',
-			re.compile(r'namespace\s*\[\[\s*(?P<attr>[^\]]+?)\s*\]\]\s*(?P<ns_name>\S+)\s*{', re.DOTALL),
+			r'namespace\s*\[\[\s*(?P<attr>[^\]]+?)\s*\]\]\s*(?P<ns_name>\S+)\s*{',
 			r'namespace /* [[\g<attr>]] */ \g<ns_name> {'
 		),
 		Regex('attr_cl',
-			re.compile(r'class\s*\[\[\s*(?P<attr>[^\]]+?Case)\s*\]\]\s*(?P<cl_name>[^\s:]+)(?P<suffix>[^{]*){', re.DOTALL),
+			r'class\s*\[\[\s*(?P<attr>[^\]]+?Case)\s*\]\]\s*(?P<cl_name>[^\s:]+)(?P<suffix>[^{]*){',
 			r'''class /* [[\g<attr>]] */ \g<cl_name> \g<suffix> {
 public:
 static constexpr ::std::experimental::string_view _name = "\g<cl_name>"_sv;
@@ -120,7 +136,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 '''
 		),
 		Regex('attr_clb',
-			re.compile(r'class\s*\[\[\s*(?P<attr>[^\]+]+?CaseBase)\s*\]\]\s*(?P<cl_name>[^\s:]+)(?P<suffix>[^{]*){', re.DOTALL),
+			r'class\s*\[\[\s*(?P<attr>[^\]+]+?CaseBase)\s*\]\]\s*(?P<cl_name>[^\s:]+)(?P<suffix>[^{]*){',
 			r'''class /* [[\g<attr>]] */ \g<cl_name> \g<suffix> {
 public:
 ::Tial::Testing::Main::SingleCaseCaller _caller = nullptr;
@@ -130,23 +146,23 @@ static constexpr ::std::experimental::string_view _caseName() {
 '''
 		),
 		Regex('{',
-			re.compile(r'{', re.DOTALL),
+			r'{',
 			r'{'
 		),
 		Regex('}',
-			re.compile(r'}', re.DOTALL),
+			r'}',
 			r'}'
 		),
 		Regex('expect_fail',
-			re.compile(r'\[\[(?P<attr>[^\]]+ExpectFail)\]\]\s*;', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+ExpectFail)\]\]\s*;',
 			r'/* [[\g<attr>]] */ ::Tial::Testing::Check::expectFail(TIAL_TESTING_POINTINFO);'
 		),
 		Regex('fail',
-			re.compile(r'\[\[(?P<attr>[^\]]+Fail)\]\]\s*;', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+Fail)\]\]\s*;',
 			r'/* [[\g<attr>]] */ ::Tial::Testing::Check::fail(TIAL_TESTING_POINTINFO);'
 		),
 		Regex('verify',
-			re.compile(r'\[\[(?P<attr>[^\]]+Verify)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+Verify)\]\](?P<expr>[^;]+);',
 			lambda m: r'/* [[{attr}]] {expr} */ {code}'.format(
 				attr=escape_comment(m.group('attr')),
 				expr=escape_comment(m.group('expr')),
@@ -154,7 +170,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 			)
 		),
 		Regex('throw',
-			re.compile(r'\[\[(?P<attr>[^\]]+Throw)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+Throw)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);',
 			lambda m: r'''/* [[{attr}({type_c})]] {expr_c} */
 ::Tial::Testing::Check::throws<{type}>(TIAL_TESTING_POINTINFO, "{expr_s}", [&](){{ {expr}; }});'''.format(
 				attr=escape_comment(m.group('attr')),
@@ -166,12 +182,12 @@ static constexpr ::std::experimental::string_view _caseName() {
 			)
 		),
 		Regex('throw_exact',
-			re.compile(r'\[\[(?P<attr>[^\]]+ThrowExact)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+ThrowExact)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);',
 			r'''/* [[\g<attr>(\g<type>)]] \g<expr> */
 ::Tial::Testing::Check::throws<\g<type>>(TIAL_TESTING_POINTINFO, "\g<expr>", [&](){ \g<expr>; }, true);'''
 		),
 		Regex('throw_equal',
-			re.compile(r'\[\[(?P<attr>[^\]]+ThrowEqual)\((?P<inst>.+?)\)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+ThrowEqual)\((?P<inst>.+?)\)\]\](?P<expr>[^;]+);',
 			lambda m: r'''/* [[{attr}({inst})]] {expr} */
 ::Tial::Testing::Check::throwsEqual(TIAL_TESTING_POINTINFO, "{inst_s}", {inst}, "{expr_s}", [&](){{ {expr}; }});'''.format(
 				attr=m.group('attr'),
@@ -182,7 +198,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 			)
 		),
 		Regex('no_throw',
-			re.compile(r'\[\[(?P<attr>[^\]]+NoThrow)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+NoThrow)\]\](?P<expr>[^;]+);',
 			lambda m: r'''/* [[{attr}]] {expr_c} */
 ::Tial::Testing::Check::noThrows<typename std::decay<decltype({expr})>::type>(TIAL_TESTING_POINTINFO, "{expr_s}", [&]()->typename std::decay<decltype({expr})>::type{{ return {expr}; }});'''.format(
 				attr=m.group('attr'),
@@ -192,11 +208,11 @@ static constexpr ::std::experimental::string_view _caseName() {
 			)
 		),
 		Regex('data',
-			re.compile(r'\[\[(?P<attr>[^\]]+Data)\("(?P<name>[^"]*)"\)\]\]\s+(?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+Data)\("(?P<name>[^"]*)"\)\]\]\s+(?P<expr>[^;]+);',
 			r'/* [[\g<attr>("\g<name>")]] */ _runWithData("\g<name>"_sv, \g<expr>);'
 		),
 		Regex('data',
-			re.compile(r'\[\[(?P<attr>[^\]]+Data)\]\]\s+(?P<ret>\S+)\s+(?P<name>\S+)\(\)', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+Data)\]\]\s+(?P<ret>\S+)\s+(?P<name>\S+)\(\)',
 			r'''
 
 template<typename DATA>
@@ -208,7 +224,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 
 /* [[\g<attr>]] */ \g<ret> \g<name>()'''
 		)
-	]
+	])
 
 	def __init__(self, infile, oufile):
 		self.infile = infile
@@ -269,13 +285,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		return attr == spec
 
 	def get_next(self):
-		match = None
-		regex = None
-		for r in self.res:
-			m = r.regex.search(self.source, self.pos)
-			if m and (not match or match.start() > m.start()):
-				match = m
-				regex = r
+		(match, regex) = self.res.search(self.source, self.pos)
 		if match is not None:
 			self.pos = match.end()
 		return (match, regex)
