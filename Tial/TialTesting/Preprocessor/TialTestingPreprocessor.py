@@ -86,19 +86,50 @@ class Regex:
 		)
 
 class RegexCollection:
+	enable_full_match_optimization = True
+	re_group = re.compile(r'\?P<(.*?)>')
+
 	def __init__(self, regeces):
 		self.regeces = regeces
+		if self.enable_full_match_optimization:
+			self.full_regex = r'('
+			for i in range(len(self.regeces)):
+				regex = self.regeces[i]
+				r = self.re_group.sub('', regex.regex)
+				self.full_regex += r'(?P<'+regex.name+r'>'+r+r')'
+				if i + 1 < len(self.regeces):
+					self.full_regex += r'|'
+			self.full_regex += r')'
+			self.full_regex = re.compile(self.full_regex, re.DOTALL)
+
 		for i in self.regeces:
 			i.regex = re.compile(i.regex, re.DOTALL)
+
+		if self.enable_full_match_optimization:
+			self.regeces = { i.name: i for i in self.regeces }
 
 	def search(self, source, pos):
 		match = None
 		regex = None
-		for r in self.regeces:
-			m = r.regex.search(source, pos)
-			if m and (not match or match.start() > m.start()):
-				match = m
-				regex = r
+		m = None
+		if self.enable_full_match_optimization:
+			full_match = self.full_regex.search(source, pos)
+			if full_match:
+				m = [ i[0] for i in full_match.groupdict().items() if i[1] is not None ]
+				assert len(m) == 1
+				m = m[0]
+				r = self.regeces[m]
+				m = r.regex.search(source, full_match.start())
+				if m and (not match or match.start() > m.start()):
+					match = m
+					regex = r
+		else:
+			for r in self.regeces:
+				m = r.regex.search(source, pos)
+				if m and (not match or match.start() > m.start()):
+					match = m
+					regex = r
+
 		return (match, regex)
 
 class Preprocessor:
