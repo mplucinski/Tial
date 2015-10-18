@@ -269,6 +269,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		self.aliases = {}
 		self.suites = []
 		self.blocks_stack = []
+		self.line_no_cache = [1]
 
 	def search_all(self, regex):
 		begin = 0
@@ -282,13 +283,23 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		return matches
 
 	def get_line(self, pos):
-		line = 1
-		for i in range(pos):
+		last_cached = len(self.line_no_cache)-1
+		if last_cached >= pos:
+			return self.line_no_cache[pos]
+
+		line = self.line_no_cache[last_cached]
+		for i in range(last_cached+1, pos):
 			if self.source[i:i+5] == '#line':
 				line = int(self.source[i+6:self.source.find('\n', i+6)])-1
 			if self.source[i] == '\n':
 				line += 1
+			assert i == len(self.line_no_cache)
+			self.line_no_cache.append(line)
 		return line
+
+	def drop_line_no_cache(self, pos):
+		if len(self.line_no_cache) >= pos:
+			del self.line_no_cache[pos:]
 
 	def re_replace(self, match, regex, replacement):
 		a = match.start()
@@ -306,6 +317,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		left = self.source[:a]
 		right = self.source[b:]
 		self.source = left + replacement + right
+		self.drop_line_no_cache(a)
 
 	def check_attr(self, attr, spec):
 		attr = attr.split('::')
