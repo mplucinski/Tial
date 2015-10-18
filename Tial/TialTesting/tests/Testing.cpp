@@ -294,4 +294,10 @@ namespace [[Testing::Suite]] Internals {
 			[[Check::Verify]] Check::argToString(NonStringable()) == "<cannot convert to string>";
 		}
 	};
+
+	class [[Testing::Case]] LineNoInGeneratedFile {
+		void operator()() {
+			[[Check::Verify]] __LINE__ == 300;
+		}
+	};
 }
