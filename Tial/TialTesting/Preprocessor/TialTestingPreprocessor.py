@@ -145,11 +145,11 @@ static constexpr ::std::experimental::string_view _caseName() {
 }
 '''
 		),
-		Regex('{',
+		Regex('brace_open',
 			r'{',
 			r'{'
 		),
-		Regex('}',
+		Regex('brace_close',
 			r'}',
 			r'}'
 		),
@@ -207,7 +207,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 				expr_s=escape_string(m.group('expr'))
 			)
 		),
-		Regex('data',
+		Regex('data_with_name',
 			r'\[\[(?P<attr>[^\]]+Data)\("(?P<name>[^"]*)"\)\]\]\s+(?P<expr>[^;]+);',
 			r'/* [[\g<attr>("\g<name>")]] */ _runWithData("\g<name>"_sv, \g<expr>);'
 		),
@@ -394,14 +394,14 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 				elif regex.name == 'no_throw':
 					if not self.check_attr(match.group('attr'), self.attr_no_throw):
 						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'data':
+				elif regex.name == 'data' or regex.name == 'data_with_name':
 					if not self.check_attr(match.group('attr'), self.attr_data):
 						raise Exception('Unknown attribute: '+match.group('attr'))
 					if self.blocks_stack[-1] is not None:
 						self.blocks_stack[-1].has_data = match.group('name')
-				elif regex.name == '{':
+				elif regex.name == 'brace_open':
 					self.blocks_stack.append(None)
-				elif regex.name == '}':
+				elif regex.name == 'brace_close':
 					if self.blocks_stack[-1] is not None:
 						replacement = self.blocks_stack[-1].close_block(regex.replacement)
 					del self.blocks_stack[-1]
