@@ -85,6 +85,53 @@ class Regex:
 			name=self.name, regex=self.regex, replacement=self.replacement
 		)
 
+class RegexCollection:
+	enable_full_match_optimization = True
+	re_group = re.compile(r'\?P<(.*?)>')
+
+	def __init__(self, regeces):
+		self.regeces = regeces
+		if self.enable_full_match_optimization:
+			self.full_regex = r'('
+			for i in range(len(self.regeces)):
+				regex = self.regeces[i]
+				r = self.re_group.sub('', regex.regex)
+				self.full_regex += r'(?P<'+regex.name+r'>'+r+r')'
+				if i + 1 < len(self.regeces):
+					self.full_regex += r'|'
+			self.full_regex += r')'
+			self.full_regex = re.compile(self.full_regex, re.DOTALL)
+
+		for i in self.regeces:
+			i.regex = re.compile(i.regex, re.DOTALL)
+
+		if self.enable_full_match_optimization:
+			self.regeces = { i.name: i for i in self.regeces }
+
+	def search(self, source, pos):
+		match = None
+		regex = None
+		m = None
+		if self.enable_full_match_optimization:
+			full_match = self.full_regex.search(source, pos)
+			if full_match:
+				m = [ i[0] for i in full_match.groupdict().items() if i[1] is not None ]
+				assert len(m) == 1
+				m = m[0]
+				r = self.regeces[m]
+				m = r.regex.search(source, full_match.start())
+				if m and (not match or match.start() > m.start()):
+					match = m
+					regex = r
+		else:
+			for r in self.regeces:
+				m = r.regex.search(source, pos)
+				if m and (not match or match.start() > m.start()):
+					match = m
+					regex = r
+
+		return (match, regex)
+
 class Preprocessor:
 	attr_typedef = 'Tial::Testing::Typedef'
 	attr_suite = 'Tial::Testing::Suite'
@@ -99,17 +146,17 @@ class Preprocessor:
 	attr_no_throw = 'Tial::Testing::Check::NoThrow'
 	attr_data = 'Tial::Testing::Data'
 
-	res = [
+	res = RegexCollection([
 		Regex('attr_ns_alias',
-			re.compile(r'\[\[\s*'+attr_typedef+'\s*\]\]\s*namespace\s+(?P<alias>\S+)\s*=\s*(?P<original>\S+)\s*;', re.DOTALL),
+			r'\[\[\s*'+attr_typedef+'\s*\]\]\s*namespace\s+(?P<alias>\S+)\s*=\s*(?P<original>\S+)\s*;',
 			r'/* '+attr_typedef+' */ namespace \g<alias> = \g<original>;'
 		),
 		Regex('attr_ns',
-			re.compile(r'namespace\s*\[\[\s*(?P<attr>[^\]]+?)\s*\]\]\s*(?P<ns_name>\S+)\s*{', re.DOTALL),
+			r'namespace\s*\[\[\s*(?P<attr>[^\]]+?)\s*\]\]\s*(?P<ns_name>\S+)\s*{',
 			r'namespace /* [[\g<attr>]] */ \g<ns_name> {'
 		),
 		Regex('attr_cl',
-			re.compile(r'class\s*\[\[\s*(?P<attr>[^\]]+?Case)\s*\]\]\s*(?P<cl_name>[^\s:]+)(?P<suffix>[^{]*){', re.DOTALL),
+			r'class\s*\[\[\s*(?P<attr>[^\]]+?Case)\s*\]\]\s*(?P<cl_name>[^\s:]+)(?P<suffix>[^{]*){',
 			r'''class /* [[\g<attr>]] */ \g<cl_name> \g<suffix> {
 public:
 static constexpr ::std::experimental::string_view _name = "\g<cl_name>"_sv;
@@ -120,7 +167,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 '''
 		),
 		Regex('attr_clb',
-			re.compile(r'class\s*\[\[\s*(?P<attr>[^\]+]+?CaseBase)\s*\]\]\s*(?P<cl_name>[^\s:]+)(?P<suffix>[^{]*){', re.DOTALL),
+			r'class\s*\[\[\s*(?P<attr>[^\]+]+?CaseBase)\s*\]\]\s*(?P<cl_name>[^\s:]+)(?P<suffix>[^{]*){',
 			r'''class /* [[\g<attr>]] */ \g<cl_name> \g<suffix> {
 public:
 ::Tial::Testing::Main::SingleCaseCaller _caller = nullptr;
@@ -129,24 +176,24 @@ static constexpr ::std::experimental::string_view _caseName() {
 }
 '''
 		),
-		Regex('{',
-			re.compile(r'{', re.DOTALL),
+		Regex('brace_open',
+			r'{',
 			r'{'
 		),
-		Regex('}',
-			re.compile(r'}', re.DOTALL),
+		Regex('brace_close',
+			r'}',
 			r'}'
 		),
 		Regex('expect_fail',
-			re.compile(r'\[\[(?P<attr>[^\]]+ExpectFail)\]\]\s*;', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+ExpectFail)\]\]\s*;',
 			r'/* [[\g<attr>]] */ ::Tial::Testing::Check::expectFail(TIAL_TESTING_POINTINFO);'
 		),
 		Regex('fail',
-			re.compile(r'\[\[(?P<attr>[^\]]+Fail)\]\]\s*;', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+Fail)\]\]\s*;',
 			r'/* [[\g<attr>]] */ ::Tial::Testing::Check::fail(TIAL_TESTING_POINTINFO);'
 		),
 		Regex('verify',
-			re.compile(r'\[\[(?P<attr>[^\]]+Verify)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+Verify)\]\](?P<expr>[^;]+);',
 			lambda m: r'/* [[{attr}]] {expr} */ {code}'.format(
 				attr=escape_comment(m.group('attr')),
 				expr=escape_comment(m.group('expr')),
@@ -154,7 +201,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 			)
 		),
 		Regex('throw',
-			re.compile(r'\[\[(?P<attr>[^\]]+Throw)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+Throw)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);',
 			lambda m: r'''/* [[{attr}({type_c})]] {expr_c} */
 ::Tial::Testing::Check::throws<{type}>(TIAL_TESTING_POINTINFO, "{expr_s}", [&](){{ {expr}; }});'''.format(
 				attr=escape_comment(m.group('attr')),
@@ -166,12 +213,12 @@ static constexpr ::std::experimental::string_view _caseName() {
 			)
 		),
 		Regex('throw_exact',
-			re.compile(r'\[\[(?P<attr>[^\]]+ThrowExact)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+ThrowExact)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);',
 			r'''/* [[\g<attr>(\g<type>)]] \g<expr> */
 ::Tial::Testing::Check::throws<\g<type>>(TIAL_TESTING_POINTINFO, "\g<expr>", [&](){ \g<expr>; }, true);'''
 		),
 		Regex('throw_equal',
-			re.compile(r'\[\[(?P<attr>[^\]]+ThrowEqual)\((?P<inst>.+?)\)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+ThrowEqual)\((?P<inst>.+?)\)\]\](?P<expr>[^;]+);',
 			lambda m: r'''/* [[{attr}({inst})]] {expr} */
 ::Tial::Testing::Check::throwsEqual(TIAL_TESTING_POINTINFO, "{inst_s}", {inst}, "{expr_s}", [&](){{ {expr}; }});'''.format(
 				attr=m.group('attr'),
@@ -182,7 +229,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 			)
 		),
 		Regex('no_throw',
-			re.compile(r'\[\[(?P<attr>[^\]]+NoThrow)\]\](?P<expr>[^;]+);', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+NoThrow)\]\](?P<expr>[^;]+);',
 			lambda m: r'''/* [[{attr}]] {expr_c} */
 ::Tial::Testing::Check::noThrows<typename std::decay<decltype({expr})>::type>(TIAL_TESTING_POINTINFO, "{expr_s}", [&]()->typename std::decay<decltype({expr})>::type{{ return {expr}; }});'''.format(
 				attr=m.group('attr'),
@@ -191,12 +238,12 @@ static constexpr ::std::experimental::string_view _caseName() {
 				expr_s=escape_string(m.group('expr'))
 			)
 		),
-		Regex('data',
-			re.compile(r'\[\[(?P<attr>[^\]]+Data)\("(?P<name>[^"]*)"\)\]\]\s+(?P<expr>[^;]+);', re.DOTALL),
+		Regex('data_with_name',
+			r'\[\[(?P<attr>[^\]]+Data)\("(?P<name>[^"]*)"\)\]\]\s+(?P<expr>[^;]+);',
 			r'/* [[\g<attr>("\g<name>")]] */ _runWithData("\g<name>"_sv, \g<expr>);'
 		),
 		Regex('data',
-			re.compile(r'\[\[(?P<attr>[^\]]+Data)\]\]\s+(?P<ret>\S+)\s+(?P<name>\S+)\(\)', re.DOTALL),
+			r'\[\[(?P<attr>[^\]]+Data)\]\]\s+(?P<ret>\S+)\s+(?P<name>\S+)\(\)',
 			r'''
 
 template<typename DATA>
@@ -208,7 +255,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 
 /* [[\g<attr>]] */ \g<ret> \g<name>()'''
 		)
-	]
+	])
 
 	def __init__(self, infile, oufile):
 		self.infile = infile
@@ -222,6 +269,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		self.aliases = {}
 		self.suites = []
 		self.blocks_stack = []
+		self.line_no_cache = [1]
 
 	def search_all(self, regex):
 		begin = 0
@@ -235,13 +283,23 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		return matches
 
 	def get_line(self, pos):
-		line = 1
-		for i in range(pos):
+		last_cached = len(self.line_no_cache)-1
+		if last_cached >= pos:
+			return self.line_no_cache[pos]
+
+		line = self.line_no_cache[last_cached]
+		for i in range(last_cached+1, pos):
 			if self.source[i:i+5] == '#line':
 				line = int(self.source[i+6:self.source.find('\n', i+6)])-1
 			if self.source[i] == '\n':
 				line += 1
+			assert i == len(self.line_no_cache)
+			self.line_no_cache.append(line)
 		return line
+
+	def drop_line_no_cache(self, pos):
+		if len(self.line_no_cache) >= pos:
+			del self.line_no_cache[pos:]
 
 	def re_replace(self, match, regex, replacement):
 		a = match.start()
@@ -259,6 +317,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		left = self.source[:a]
 		right = self.source[b:]
 		self.source = left + replacement + right
+		self.drop_line_no_cache(a)
 
 	def check_attr(self, attr, spec):
 		attr = attr.split('::')
@@ -269,13 +328,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		return attr == spec
 
 	def get_next(self):
-		match = None
-		regex = None
-		for r in self.res:
-			m = r.regex.search(self.source, self.pos)
-			if m and (not match or match.start() > m.start()):
-				match = m
-				regex = r
+		(match, regex) = self.res.search(self.source, self.pos)
 		if match is not None:
 			self.pos = match.end()
 		return (match, regex)
@@ -384,14 +437,14 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 				elif regex.name == 'no_throw':
 					if not self.check_attr(match.group('attr'), self.attr_no_throw):
 						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'data':
+				elif regex.name == 'data' or regex.name == 'data_with_name':
 					if not self.check_attr(match.group('attr'), self.attr_data):
 						raise Exception('Unknown attribute: '+match.group('attr'))
 					if self.blocks_stack[-1] is not None:
 						self.blocks_stack[-1].has_data = match.group('name')
-				elif regex.name == '{':
+				elif regex.name == 'brace_open':
 					self.blocks_stack.append(None)
-				elif regex.name == '}':
+				elif regex.name == 'brace_close':
 					if self.blocks_stack[-1] is not None:
 						replacement = self.blocks_stack[-1].close_block(regex.replacement)
 					del self.blocks_stack[-1]
@@ -417,7 +470,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 
 		open(str(self.oufile), 'wb').write(self.source.encode('utf-8'))
 
-if __name__ == '__main__':
+def main():
 	parser = argparse.ArgumentParser(description='Preprocessor for test sources')
 	parser.add_argument('input', nargs=1, help='Input file')
 	parser.add_argument('-o', '--output', required=True, nargs=1, help='Output file')
@@ -428,3 +481,5 @@ if __name__ == '__main__':
 
 	p = Preprocessor(infile, oufile)
 	p.process()
+if __name__ == '__main__':
+	main()
