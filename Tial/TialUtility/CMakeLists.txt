@@ -29,6 +29,7 @@ add_tial_library(${PROJECT_NAME}
 		Algorithm.hpp
 		ArgumentParser.hpp
 		Directory.hpp
+		Enum.hpp
 		Exception.hpp
 		Language.hpp
 		Logger.hpp

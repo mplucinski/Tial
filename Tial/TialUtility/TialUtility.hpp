@@ -25,6 +25,7 @@
 #include "Algorithm.hpp"
 #include "ArgumentParser.hpp"
 #include "Directory.hpp"
+#include "Enum.hpp"
 #include "Exception.hpp"
 #include "Language.hpp"
 #include "Logger.hpp"
