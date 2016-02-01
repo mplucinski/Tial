@@ -95,8 +95,7 @@ Stream &operator<<(Stream &s, const std::pair<T1, T2> &pair) {
 
 template<
 	typename T,
-	typename = decltype(std::begin(T())->first),
-	typename = decltype(std::begin(T())->second)
+	typename = decltype(std::begin(T()))
 >
 Stream &operator<<(Stream &s, const T &t) {
 	s << typeid(t) << "{";
@@ -106,7 +105,7 @@ Stream &operator<<(Stream &s, const T &t) {
 			first = false;
 		else
 			s << ", ";
-		s << i.first << " = " << i.second;
+		s << i;
 	}
 	s << "}";
 	return s;
