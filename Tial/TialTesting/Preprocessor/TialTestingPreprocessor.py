@@ -41,8 +41,29 @@ class Suite:
 		self.subsuites = []
 		self.cases = []
 
+	def __repr__(self):
+		return '<Suite "{}">'.format(self.full_name)
+
 	def close_block(self, replacement):
 		return replacement
+
+class Quoting:
+	def __init__(self, pos, line):
+		self.pos = pos
+		self.line = line
+
+	def __repr__(self):
+		return '<Quoting from line {}>'.format(self.line)
+
+class Block:
+	def __init__(self, start, end, line, text):
+		self.start = start
+		self.end = end
+		self.line = line
+		self.text = text
+
+	def __repr__(self):
+		return '<Block "{}" ({})>'.format(self.text, self.line)
 
 class Case:
 	def __init__(self, name, full_name, base):
@@ -50,6 +71,9 @@ class Case:
 		self.full_name = full_name
 		self.has_data = None
 		self.base = base
+
+	def __repr__(self):
+		return '<Case "{}">'.format(self.full_name)
 
 	def close_block(self, replacement):
 		if self.has_data is not None:
@@ -147,6 +171,14 @@ class Preprocessor:
 	attr_data = 'Tial::Testing::Data'
 
 	res = RegexCollection([
+		Regex('quote',
+			r'"',
+			r'"',
+		),
+		Regex('inline_comment',
+			r'//(?P<comment>[^\n]*)\n',
+			r'/* \g<comment> */'
+		),
 		Regex('attr_ns_alias',
 			r'\[\[\s*'+attr_typedef+'\s*\]\]\s*namespace\s+(?P<alias>\S+)\s*=\s*(?P<original>\S+)\s*;',
 			r'/* '+attr_typedef+' */ namespace \g<alias> = \g<original>;'
@@ -178,7 +210,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 		),
 		Regex('brace_open',
 			r'{',
-			r'{'
+			None
 		),
 		Regex('brace_close',
 			r'}',
@@ -257,9 +289,11 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		)
 	])
 
-	def __init__(self, infile, oufile):
+	def __init__(self, infile, oufile, verbose, track_original_lines):
 		self.infile = infile
 		self.oufile = oufile
+		self.verbose = verbose
+		self.track_original_lines = track_original_lines
 
 		if not self.oufile.parent.exists():
 			self.oufile.parent.mkdir(parents=True)
@@ -270,6 +304,10 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		self.suites = []
 		self.blocks_stack = []
 		self.line_no_cache = [1]
+
+	def log(self, message):
+		if self.verbose:
+			sys.stderr.write('{}\n'.format(message))
 
 	def search_all(self, regex):
 		begin = 0
@@ -282,26 +320,65 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			begin = match.end()+1
 		return matches
 
-	def get_line(self, pos):
-		last_cached = len(self.line_no_cache)-1
-		if last_cached >= pos:
-			return self.line_no_cache[pos]
+	hash_line = "#line"
+	re_whitespace = re.compile(r'\s+')
+	def parse_hash_line(self, pos):
+		end = self.source.find('\n', pos)
+		directive = self.source[pos:end+1]
+		assert directive.startswith(self.hash_line)
+		assert directive.endswith('\n')
 
-		line = self.line_no_cache[last_cached]
-		for i in range(last_cached+1, pos):
-			if self.source[i:i+5] == '#line':
-				line = int(self.source[i+6:self.source.find('\n', i+6)])-1
-			if self.source[i] == '\n':
-				line += 1
-			assert i == len(self.line_no_cache)
-			self.line_no_cache.append(line)
-		return line
+		directive = self.re_whitespace.split(directive)
+		assert len(directive) == 4
+		assert directive[0] == self.hash_line
+		assert directive[3] == ''
+		return (int(directive[1]), directive[2], end)
+
+	get_line_optimized = True
+	def get_line(self, pos):
+		if not self.get_line_optimized:
+			line = 1
+			i = 0
+			while i < min(pos, len(self.source)):
+				if self.source.find(self.hash_line, i) == i:
+					(line, _, end) = self.parse_hash_line(i)
+					assert self.source[end] == '\n'
+					i = end
+				elif self.source[i] == '\n':
+					line += 1
+				i += 1
+			return line
+		else:
+			last_cached = len(self.line_no_cache)-1
+			if last_cached >= pos:
+				return self.line_no_cache[pos]
+
+			line = self.line_no_cache[last_cached]
+			i = last_cached+1
+			while i < min(pos, len(self.source)):
+				if self.source.find(self.hash_line, i) == i:
+					(line, _, end) = self.parse_hash_line(i)
+					assert self.source[end] == '\n'
+					for j in range(i, end):
+						assert i == len(self.line_no_cache)
+						self.line_no_cache.append(line)
+						i += 1
+					assert i == end
+				elif self.source[i] == '\n':
+					line += 1
+				assert i == len(self.line_no_cache)
+				self.line_no_cache.append(line)
+				i += 1
+			return line
 
 	def drop_line_no_cache(self, pos):
 		if len(self.line_no_cache) >= pos:
 			del self.line_no_cache[pos:]
 
 	def re_replace(self, match, regex, replacement):
+		if replacement is None:
+			return
+
 		a = match.start()
 		b = match.end()
 		line_b = self.get_line(b)
@@ -309,9 +386,10 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		if self.pos == b:
 			self.pos = a + len(replacement)
 
-		replacement += '''
-#line {}
-'''.format(line_b)
+		if self.track_original_lines:
+			replacement += '''
+#line {} "{}"
+'''.format(line_b, self.infile)
 
 		#self.source[a:b] = replacement
 		left = self.source[:a]
@@ -388,74 +466,118 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		replacement = replacement + handler
 		return replacement + ';'
 
+	def dump_stack(self):
+		self.log('stack: '+repr(self.blocks_stack))
+
+	def _escape_for_log(self, text):
+		text = text.replace('\r', '\\r')
+		text = text.replace('\n', '\\n')
+		text = text.replace('\t', '\\t')
+		return text
+
 	def process(self):
+		self.log('Processing...')
+
 		self.pos = 0
 		while True:
 			(match, regex) = self.get_next()
 			if match is None or regex is None:
 				break
 
+			if self.verbose:
+				self.log('Found match of {} (line {}, bytes {} - {})'.format(
+					regex.name, self.get_line(match.start()), match.start(), match.end()
+				))
+				left = self.source[match.start()-3:match.start()]
+				middle = self.source[match.start():match.end()]
+				right = self.source[match.end():match.end()+3]
+				left = self._escape_for_log(left)
+				middle = self._escape_for_log(middle)
+				right = self._escape_for_log(right)
+				self.log(left + middle + right)
+				self.log((' '*len(left)) + '^' + ((len(middle)-2)*'-') + '^')
+
 			try:
 				replacement = regex.replacement
-				if regex.name == 'attr_ns_alias':
-					self.aliases[match.group('alias')] = match.group('original')
-				elif regex.name == 'attr_ns':
-					if self.check_attr(match.group('attr'), self.attr_suite):
-						suite = Suite(match.group('ns_name'), self.full_name(match.group('ns_name')))
-						self.suites.append(suite)
-						self.blocks_stack.append(suite)
+				if len(self.blocks_stack) > 0 and isinstance(self.blocks_stack[-1], Quoting):
+					if regex.name == 'quote':
+						del self.blocks_stack[-1]
+						self.log('end-of-quote')
+						self.dump_stack()
 					else:
-						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'attr_cl' or regex.name == 'attr_clb':
-					if (self.check_attr(match.group('attr'), self.attr_case) or
-							self.check_attr(match.group('attr'), self.attr_casebase)
-						):
-						case = Case(match.group('cl_name'), self.full_name(match.group('cl_name')), regex.name == 'attr_clb')
-						if not case.base:
-							self.blocks_stack[-1].cases.append(case)
-						self.blocks_stack.append(case)
-					else:
-						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'expect_fail':
-					if not self.check_attr(match.group('attr'), self.attr_expect_fail):
-						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'fail':
-					if not self.check_attr(match.group('attr'), self.attr_fail):
-						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'verify':
-					if not self.check_attr(match.group('attr'), self.attr_verify):
-						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'throw':
-					if not self.check_attr(match.group('attr'), self.attr_throw):
-						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'throw_exact':
-					if not self.check_attr(match.group('attr'), self.attr_throw_exact):
-						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'throw_equal':
-					if not self.check_attr(match.group('attr'), self.attr_throw_equal):
-						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'no_throw':
-					if not self.check_attr(match.group('attr'), self.attr_no_throw):
-						raise Exception('Unknown attribute: '+match.group('attr'))
-				elif regex.name == 'data' or regex.name == 'data_with_name':
-					if not self.check_attr(match.group('attr'), self.attr_data):
-						raise Exception('Unknown attribute: '+match.group('attr'))
-					if self.blocks_stack[-1] is not None:
-						self.blocks_stack[-1].has_data = match.group('name')
-				elif regex.name == 'brace_open':
-					self.blocks_stack.append(None)
-				elif regex.name == 'brace_close':
-					if self.blocks_stack[-1] is not None:
-						replacement = self.blocks_stack[-1].close_block(regex.replacement)
-					del self.blocks_stack[-1]
+						self.pos = match.start()+1
+						self.log('within quoting ({}), this match is ignored'.format(self.blocks_stack[-1]))
 				else:
-					raise Exception('Unknown regex: '+regex.name)
-				self.re_replace(match, regex, replacement)
+					if regex.name == 'inline_comment':
+						pass
+					elif regex.name == 'quote':
+						self.blocks_stack.append(Quoting(match.start(), self.get_line(match.start())))
+						self.dump_stack()
+						continue
+					elif regex.name == 'attr_ns_alias':
+						self.aliases[match.group('alias')] = match.group('original')
+					elif regex.name == 'attr_ns':
+						if self.check_attr(match.group('attr'), self.attr_suite):
+							suite = Suite(match.group('ns_name'), self.full_name(match.group('ns_name')))
+							self.suites.append(suite)
+							self.blocks_stack.append(suite)
+							self.dump_stack()
+						else:
+							raise Exception('Unknown attribute: '+match.group('attr'))
+					elif regex.name == 'attr_cl' or regex.name == 'attr_clb':
+						if (self.check_attr(match.group('attr'), self.attr_case) or
+								self.check_attr(match.group('attr'), self.attr_casebase)
+							):
+							case = Case(match.group('cl_name'), self.full_name(match.group('cl_name')), regex.name == 'attr_clb')
+							if not case.base:
+								assert isinstance(self.blocks_stack[-1], Suite)
+								self.blocks_stack[-1].cases.append(case)
+							self.blocks_stack.append(case)
+							self.dump_stack()
+						else:
+							raise Exception('Unknown attribute: '+match.group('attr'))
+					elif regex.name == 'expect_fail':
+						if not self.check_attr(match.group('attr'), self.attr_expect_fail):
+							raise Exception('Unknown attribute: '+match.group('attr'))
+					elif regex.name == 'fail':
+						if not self.check_attr(match.group('attr'), self.attr_fail):
+							raise Exception('Unknown attribute: '+match.group('attr'))
+					elif regex.name == 'verify':
+						if not self.check_attr(match.group('attr'), self.attr_verify):
+							raise Exception('Unknown attribute: '+match.group('attr'))
+					elif regex.name == 'throw':
+						if not self.check_attr(match.group('attr'), self.attr_throw):
+							raise Exception('Unknown attribute: '+match.group('attr'))
+					elif regex.name == 'throw_exact':
+						if not self.check_attr(match.group('attr'), self.attr_throw_exact):
+							raise Exception('Unknown attribute: '+match.group('attr'))
+					elif regex.name == 'throw_equal':
+						if not self.check_attr(match.group('attr'), self.attr_throw_equal):
+							raise Exception('Unknown attribute: '+match.group('attr'))
+					elif regex.name == 'no_throw':
+						if not self.check_attr(match.group('attr'), self.attr_no_throw):
+							raise Exception('Unknown attribute: '+match.group('attr'))
+					elif regex.name == 'data' or regex.name == 'data_with_name':
+						if not self.check_attr(match.group('attr'), self.attr_data):
+							raise Exception('Unknown attribute: '+match.group('attr'))
+						if not isinstance(self.blocks_stack[-1], Block):
+							self.blocks_stack[-1].has_data = match.group('name')
+					elif regex.name == 'brace_open':
+						self.blocks_stack.append(Block(match.start(), match.end(), self.get_line(match.start()), match.groups()))
+						self.dump_stack()
+					elif regex.name == 'brace_close':
+						if not isinstance(self.blocks_stack[-1], Block):
+							replacement = self.blocks_stack[-1].close_block(regex.replacement)
+						del self.blocks_stack[-1]
+						self.dump_stack()
+					else:
+						raise Exception('Unknown regex: '+regex.name)
+					self.re_replace(match, regex, replacement)
 			except Exception as e:
-				print(e)
-				print('In line: {}'.format(self.get_line(match.start())))
-				print('Expression: {}'.format(match.group(0)))
-				raise e
+				sys.stderr.write('{}\n'.format(e))
+				sys.stderr.write('In line: {}\n'.format(self.get_line(match.start())))
+				sys.stderr.write('Expression: {}\n'.format(match.group(0)))
+				raise
 
 		self.source += '\n'
 		self.source += 'namespace {\n';
@@ -474,12 +596,21 @@ def main():
 	parser = argparse.ArgumentParser(description='Preprocessor for test sources')
 	parser.add_argument('input', nargs=1, help='Input file')
 	parser.add_argument('-o', '--output', required=True, nargs=1, help='Output file')
+	parser.add_argument('-v', '--verbose', action='store_true', help='Show some internal processing information')
+	parser.add_argument('--disable-line', action='store_true', help='Do not produce #line directives in output file')
 
 	args = parser.parse_args()
 	infile = pathlib.Path(args.input[0])
 	oufile = pathlib.Path(args.output[0])
 
-	p = Preprocessor(infile, oufile)
-	p.process()
+	p = Preprocessor(infile, oufile, args.verbose, not args.disable_line)
+	try:
+		p.process()
+	except:
+		sys.stderr.write('Dumping progess to TialTesting.dump\n')
+		with open('TialTesting.dump', 'w') as f:
+			f.write(p.source)
+		raise
+
 if __name__ == '__main__':
 	main()
