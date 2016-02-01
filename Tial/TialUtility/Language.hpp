@@ -47,6 +47,33 @@ constexpr std::experimental::string_view operator""_sv(const char *s, std::size_
 
 }
 
+template<typename Stream, std::ios_base::openmode defaultOpenMode>
+class FStreamWrapper: public Stream {
+	void enableExceptions() {
+		this->exceptions(Stream::failbit | Stream::badbit);
+	}
+public:
+	FStreamWrapper() {
+		enableExceptions();
+	}
+
+	template<typename String>
+	explicit FStreamWrapper(const String& filename, std::ios_base::openmode mode = defaultOpenMode) {
+		enableExceptions();
+		this->open(filename, mode);
+	}
+
+	FStreamWrapper(FStreamWrapper &&other): Stream{std::move(other)} {
+		enableExceptions();
+	}
+
+	FStreamWrapper(const FStreamWrapper &other) = delete;
+};
+
+using FStream = FStreamWrapper<std::fstream, std::ios_base::in | std::ios_base::out>;
+using IFStream = FStreamWrapper<std::ifstream, std::ios_base::in>;
+using OFStream = FStreamWrapper<std::ofstream, std::ios_base::out>;
+
 namespace Cast {
 
 #define TIAL_UTILITY_LANGUAGE_CAST(name, ptrContainer, elementType, castOp) \
