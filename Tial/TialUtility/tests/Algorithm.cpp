@@ -87,26 +87,92 @@ public:
 		std::string input;
 		char separator;
 		std::vector<std::string> result;
+		std::vector<std::string> resultWithSkipping;
 	};
 
 	[[Testing::Data]] void data() {
-		[[Testing::Data("simple splitting")]] Data{"Alan Alvey", ' ', {"Alan", "Alvey"}};
-		[[Testing::Data("with single prefix")]] Data{" Alan Alvey", ' ', {"", "Alan", "Alvey"}};
-		[[Testing::Data("with double prefix")]] Data{"  Alan Alvey", ' ', {"", "", "Alan", "Alvey"}};
-		[[Testing::Data("with single suffix")]] Data{"Alan Alvey ", ' ', {"Alan", "Alvey", ""}};
-		[[Testing::Data("with double suffix")]] Data{"Alan Alvey  ", ' ', {"Alan", "Alvey", "", ""}};
-		[[Testing::Data("with middle empty")]] Data{"Alan  Alvey", ' ', {"Alan", "", "Alvey"}};
-		[[Testing::Data("three elements")]] Data{"Alan Alvey Johnson", ' ', {"Alan", "Alvey", "Johnson"}};
+		[[Testing::Data("empty")]] Data{"", ' ',
+		                                {},
+		                                {}};
+		[[Testing::Data("space only")]] Data{" ", ' ',
+		                                     {"", ""},
+		                                     {}};
+		[[Testing::Data("spaces only")]] Data{"  ", ' ',
+		                                      {"", "", ""},
+		                                      {}};
+		[[Testing::Data("single letter")]] Data{"A", ' ',
+		                                        {"A"},
+		                                        {"A"}};
+		[[Testing::Data("single letter with space on left")]] Data{" A", ' ',
+		                                                           {"", "A"},
+		                                                           {"A"}};
+		[[Testing::Data("single letter with space on right")]] Data{"A ", ' ',
+		                                                            {"A", ""},
+		                                                            {"A"}};
+		[[Testing::Data("single letter with spaces on both sides")]] Data{" A ", ' ',
+		                                                                  {"", "A", ""},
+		                                                                  {"A"}};
+		[[Testing::Data("two letters with space on left")]] Data{" AA", ' ',
+		                                                         {"", "AA"},
+		                                                         {"AA"}};
+		[[Testing::Data("two letters with space on right")]] Data{"AA ", ' ',
+		                                                          {"AA", ""},
+		                                                          {"AA"}};
+		[[Testing::Data("two letters with spaces on both sides")]] Data{" AA ", ' ',
+		                                                                {"", "AA", ""},
+		                                                                {"AA"}};
+		[[Testing::Data("simple splitting")]] Data{"Alan Alvey", ' ',
+		                                           {"Alan", "Alvey"},
+		                                           {"Alan", "Alvey"}};
+		[[Testing::Data("with single prefix")]] Data{" Alan Alvey", ' ',
+		                                             {"", "Alan", "Alvey"},
+		                                             {"Alan", "Alvey"}};
+		[[Testing::Data("with double prefix")]] Data{"  Alan Alvey", ' ',
+		                                             {"", "", "Alan", "Alvey"},
+		                                             {"Alan", "Alvey"}};
+		[[Testing::Data("with single suffix")]] Data{"Alan Alvey ", ' ',
+		                                             {"Alan", "Alvey", ""},
+		                                             {"Alan", "Alvey"}};
+		[[Testing::Data("with double suffix")]] Data{"Alan Alvey  ", ' ',
+		                                             {"Alan", "Alvey", "", ""},
+		                                             {"Alan", "Alvey"}};
+		[[Testing::Data("with middle empty")]] Data{"Alan  Alvey", ' ',
+		                                            {"Alan", "", "Alvey"},
+		                                            {"Alan", "Alvey"}};
+		[[Testing::Data("three elements")]] Data{"Alan Alvey Johnson", ' ',
+		                                         {"Alan", "Alvey", "Johnson"},
+		                                         {"Alan", "Alvey", "Johnson"}};
+		[[Testing::Data("three elements with space on left")]] Data{" Alan Alvey Johnson", ' ',
+		                                                            {"", "Alan", "Alvey", "Johnson"},
+		                                                            {"Alan", "Alvey", "Johnson"}};
+		[[Testing::Data("three elements with space on right")]] Data{"Alan Alvey Johnson ", ' ',
+		                                                             {"Alan", "Alvey", "Johnson", ""},
+		                                                             {"Alan", "Alvey", "Johnson"}};
+		[[Testing::Data("three elements with spaces on both sides")]] Data{" Alan Alvey Johnson ", ' ',
+		                                                                   {"", "Alan", "Alvey", "Johnson", ""},
+		                                                                   {"Alan", "Alvey", "Johnson"}};
+		[[Testing::Data("three elements with multiple spaces")]] Data{"Alan    Alvey  Johnson", ' ',
+		                                                              {"Alan", "", "", "", "Alvey", "", "Johnson"},
+		                                                              {"Alan", "Alvey", "Johnson"}};
 	}
 
 	void operator()(const Data &data) {
 		{
 			[[Check::Verify]] (splitted<std::vector<std::string>>(data.input, data.separator)) == data.result;
 		}{
+			[[Check::Verify]] (splitted<std::vector<std::string>, SplitFlags::SkipEmpty>(data.input, data.separator)) == data.resultWithSkipping;
+		}{
 			std::experimental::string_view input = data.input;
 			auto result = splitted<std::vector<std::experimental::string_view>>(input, data.separator);
 			std::vector<std::experimental::string_view> expectedResult;
 			for(auto &i: data.result)
+				expectedResult.push_back(i);
+			[[Check::Verify]] result == expectedResult;
+		}{
+			std::experimental::string_view input = data.input;
+			auto result = splitted<std::vector<std::experimental::string_view>, SplitFlags::SkipEmpty>(input, data.separator);
+			std::vector<std::experimental::string_view> expectedResult;
+			for(auto &i: data.resultWithSkipping)
 				expectedResult.push_back(i);
 			[[Check::Verify]] result == expectedResult;
 		}

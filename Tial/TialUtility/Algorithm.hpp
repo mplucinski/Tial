@@ -23,6 +23,8 @@
 #pragma once
 #include "TialUtilityExport.hpp"
 
+#include "Enum.hpp"
+
 #include <functional>
 
 #include <experimental/string_view>
@@ -84,48 +86,59 @@ Collection stripped(const Collection &collection, const std::function<bool(const
 	return copy;
 }
 
+enum class SplitFlags {
+	None        = 0b00,
+	SkipEmpty   = 0b01
+};
+TIAL_UTILITY_DECLARE_ENUM_FLAG(SplitFlags)
+
 namespace Impl {
-	template<typename OutputContainer, typename Collection, typename Element>
+	template<typename OutputContainer, typename Collection, SplitFlags flags, typename Element>
 	struct Splitted {
 		static OutputContainer splitted(const Collection &collection, const Element &element) {
 			OutputContainer output;
 			if(!collection.empty()) {
 				output.push_back(Collection());
 				for(auto i = collection.begin(); i != collection.end(); ++i) {
-					if(*i == element)
-						output.push_back(Collection());
-					else
+					if(*i == element) {
+						if(!(flags & SplitFlags::SkipEmpty) || !output.back().empty())
+							output.push_back(Collection());
+					} else
 						(output.end()-1)->push_back(*i);
 				}
 			}
+			if(!!(flags & SplitFlags::SkipEmpty) && !output.empty() && output.back().empty())
+				output.pop_back();
 			return output;
 		}
 	};
 
-	template<typename OutputContainer, typename Element>
-	struct Splitted<OutputContainer, std::experimental::string_view, Element> {
+	template<typename OutputContainer, SplitFlags flags, typename Element>
+	struct Splitted<OutputContainer, std::experimental::string_view, flags, Element> {
 		static OutputContainer splitted(const std::experimental::string_view &collection, const Element &element) {
 			OutputContainer output;
 			if(!collection.empty()) {
 				unsigned int start = 0, i = 0;
 				for(; i != collection.size();) {
 					if(collection[i] == element) {
-						output.push_back(collection.substr(start, i-start));
+						if(!(flags & SplitFlags::SkipEmpty) || i != start)
+							output.push_back(collection.substr(start, i-start));
 						++i;
 						start = i;
 					} else
 						++i;
 				}
-				output.push_back(collection.substr(start, i));
+				if(!(flags & SplitFlags::SkipEmpty) || i != start)
+					output.push_back(collection.substr(start, i));
 			}
 			return output;
 		}
 	};
 }
 
-template<typename OutputContainer, typename Collection, typename Element = char>
+template<typename OutputContainer, SplitFlags flags = SplitFlags::None, typename Collection, typename Element = char>
 OutputContainer splitted(const Collection &collection, const Element &element = ' ') {
-	return Impl::Splitted<OutputContainer, Collection, Element>::splitted(collection, element);
+	return Impl::Splitted<OutputContainer, Collection, flags, Element>::splitted(collection, element);
 }
 
 }
