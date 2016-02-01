@@ -43,6 +43,9 @@ add_tial_library(dtl
 		${DLT_SOURCE_DIR}/dtl/variables.hpp
 )
 set_property(TARGET dtl PROPERTY LINKER_LANGUAGE CXX)
+target_include_directories(dtl
+	PUBLIC "${DLT_SOURCE_DIR}"
+)
 
 add_tial_library(${PROJECT_NAME}
 	HEADERS
@@ -57,6 +60,9 @@ add_tial_library(${PROJECT_NAME}
 		src/Main.cpp
 		src/Thread.cpp
 
+	RESOURCES
+		Info.plist.in
+
 	CMAKE_CONFIG_FILE
 		TialTestingConfig.cmake.in
 
@@ -67,7 +73,12 @@ install(PROGRAMS "${TialTestingPreprocessor}" DESTINATION bin)
 target_include_directories(${PROJECT_NAME} SYSTEM
 	PRIVATE ${Boost_INCLUDE_DIRS}
 )
-target_link_libraries(${PROJECT_NAME} TialUtility dtl)
+target_include_directories(${PROJECT_NAME}
+	PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/.."
+)
+target_link_libraries(${PROJECT_NAME}
+	PUBLIC TialUtility dtl
+)
 
 add_tial_test(Test${PROJECT_NAME}
 	SOURCES tests/Testing.cpp

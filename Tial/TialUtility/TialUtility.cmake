@@ -27,6 +27,10 @@ function(tial_set_common_settings)
 	include(CMakePackageConfigHelpers)
 	include(CMakeParseArguments)
 
+	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+		include(BundleUtilities)
+	endif()
+
 	set(CMAKE_INCLUDE_CURRENT_DIR ON PARENT_SCOPE)
 	set(CMAKE_C_STANDARD 11 PARENT_SCOPE)
 	set(CMAKE_C_STANDARD_REQUIRED ON PARENT_SCOPE)
@@ -101,13 +105,12 @@ endfunction()
 function(tial_pack_library TARGET)
 	tial_pack_binary(${TARGET} ${SELF_PACKER_FOR_SHARED_LIB} "${SELF_PACKER_FOR_SHARED_LIB_FLAGS}")
 endfunction()
-
 set(TIAL_UTILITY_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
 function(add_tial_library TARGET)
 	set(OPTIONS "")
 	set(ONE_VALUE_ARGS CMAKE_CONFIG_FILE)
-	set(MULTI_VALUE_ARGS HEADERS SOURCES RESOURCES CMAKE_SOURCES)
+	set(MULTI_VALUE_ARGS HEADERS SOURCES RESOURCES CMAKE_SOURCES LIBRARIES)
 	cmake_parse_arguments(add_tial_library
 			"${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN}
 	)
@@ -140,7 +143,8 @@ set_property(TARGET ${TARGET} PROPERTY INTERFACE_INCLUDE_DIRECTORIES \"\${PACKAG
 find_library(_${TARGET}_IMPORTED_LOCATION ${TARGET}
 	PATHS \"\${PACKAGE_PREFIX_DIR}/lib/\"
 )
-set_property(TARGET ${TARGET} PROPERTY IMPORTED_LOCATION \"\${_${TARGET}_IMPORTED_LOCATION}\")")
+set_property(TARGET ${TARGET} PROPERTY IMPORTED_LOCATION \"\${_${TARGET}_IMPORTED_LOCATION}\")
+set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_LIBRARIES ${add_tial_library_LIBRARIES})")
 
 	configure_file(${add_tial_library_CMAKE_CONFIG_FILE} "${CMAKE_CURRENT_BINARY_DIR}/${TARGET}Config.cmake.in" @ONLY)
 
@@ -186,7 +190,7 @@ set_property(TARGET ${TARGET} PROPERTY IMPORTED_LOCATION \"\${_${TARGET}_IMPORTE
 
 	set_property(TARGET ${TARGET} PROPERTY PUBLIC_HEADER ${add_tial_library_HEADERS})
 	set_property(TARGET ${TARGET} PROPERTY RESOURCE ${add_tial_library_RESOURCES})
-	target_link_libraries(${TARGET} ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(${TARGET} ${CMAKE_THREAD_LIBS_INIT} ${add_tial_library_LIBRARIES})
 
 	install(TARGETS ${TARGET}
 			ARCHIVE DESTINATION lib
@@ -200,37 +204,63 @@ set_property(TARGET ${TARGET} PROPERTY IMPORTED_LOCATION \"\${_${TARGET}_IMPORTE
 	)
 endfunction()
 
-function(add_tial_executable)
+function(add_tial_executable TARGET)
 	set(OPTIONS BUNDLE)
-	set(ONE_VALUE_ARGS TARGET PLIST)
-	set(MULTI_VALUE_ARGS SOURCES)
+	set(ONE_VALUE_ARGS PLIST)
+	set(MULTI_VALUE_ARGS SOURCES RESOURCES)
 	cmake_parse_arguments(add_tial_executable
 			"${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN}
 			)
 
-	add_executable(${add_tial_executable_TARGET} ${add_tial_executable_SOURCES})
-	if(BUILD_TYPE MATCHES "MINSIZEREL")
-		tial_pack_executable(${add_tial_executable_TARGET})
-	endif()
+	add_executable(${TARGET} ${add_tial_executable_SOURCES} ${add_tial_executable_RESOURCES})
+	# if(BUILD_TYPE MATCHES "MINSIZEREL")
+	# 	tial_pack_executable(${TARGET})
+	# endif()
 
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		if(add_tial_executable_BUNDLE)
-			set_property(TARGET ${add_tial_executable_TARGET} APPEND_STRING
+			set_property(TARGET ${TARGET}
 					PROPERTY MACOSX_BUNDLE TRUE
-					)
+			)
+			# set_property(TARGET ${TARGET}
+					# PROPERTY RESOURCE ${add_tial_executable_RESOURCES}
+			# )
 			if(add_tial_executable_PLIST)
-				set_property(TARGET ${add_tial_executable_TARGET} APPEND_STRING
+				set_property(TARGET ${TARGET} APPEND_STRING
 						PROPERTY MACOSX_BUNDLE_INFO_PLIST ${add_tial_executable_PLIST}
-						)
+				)
 			endif()
 		else()
 			if(add_tial_executable_PLIST)
-				set_property(TARGET ${add_tial_executable_TARGET} APPEND_STRING
+				set_property(TARGET ${TARGET} APPEND_STRING
 						PROPERTY LINK_FLAGS "-sectcreate __TEXT __info_plist ${add_tial_executable_PLIST}"
-						)
+				)
 			endif()
 		endif()
 	endif()
 
-	target_link_libraries(${add_tial_executable_TARGET} ${CMAKE_THREAD_LIBS_INIT})
+	set(resources "")
+	foreach(resource ${add_tial_executable_RESOURCES})
+		if(NOT IS_ABSOLUTE "${resource}")
+			set(resource "${CMAKE_CURRENT_SOURCE_DIR}/${resource}")
+		endif()
+		list(APPEND resources "${resource}")
+	endforeach()
+
+	add_custom_command(TARGET ${TARGET}
+		POST_BUILD
+		COMMAND ${CMAKE_COMMAND}
+			-D TARGET:STRING="${TARGET}"
+			-D BUNDLE:BOOL="${add_tial_executable_BUNDLE}"
+			-D OUTPUT_NAME:STRING="$<TARGET_FILE:${TARGET}>"
+			-D RESOURCES:STRING="${resources}"
+			-P "${TIAL_UTILITY_CMAKE_DIR}/TialPostBuild.cmake"
+	)
+
+	target_link_libraries(${TARGET} ${CMAKE_THREAD_LIBS_INIT})
+	install(TARGETS ${TARGET}
+		RUNTIME DESTINATION bin
+		BUNDLE DESTINATION "."
+		RESOURCE DESTINATION "share/${TARGET}"
+	)
 endfunction()

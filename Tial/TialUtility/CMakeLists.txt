@@ -57,9 +57,10 @@ add_tial_library(${PROJECT_NAME}
 	CMAKE_SOURCES
 		TialUtility.cmake
 		TialDefaultConfig.cmake.in
+		TialPostBuild.cmake
 )
 target_include_directories(${PROJECT_NAME} SYSTEM
-	PUBLIC ${Boost_INCLUDE_DIRS}
+	PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/.." ${Boost_INCLUDE_DIRS}
 )
 
 add_tial_test(Test${PROJECT_NAME}
