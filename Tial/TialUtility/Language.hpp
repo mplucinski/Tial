@@ -22,6 +22,7 @@
  */
 #pragma once
 #include "TialUtilityExport.hpp"
+#include <ios>
 #include <memory>
 #include <typeindex>
 #include <utility>
