@@ -190,7 +190,7 @@ set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_LIBRARIES ${add_tial_libra
 
 	set_property(TARGET ${TARGET} PROPERTY PUBLIC_HEADER ${add_tial_library_HEADERS})
 	set_property(TARGET ${TARGET} PROPERTY RESOURCE ${add_tial_library_RESOURCES})
-	target_link_libraries(${TARGET} ${CMAKE_THREAD_LIBS_INIT} ${add_tial_library_LIBRARIES})
+	target_link_libraries(${TARGET} PUBLIC ${CMAKE_THREAD_LIBS_INIT} ${add_tial_library_LIBRARIES})
 
 	install(TARGETS ${TARGET}
 			ARCHIVE DESTINATION lib
