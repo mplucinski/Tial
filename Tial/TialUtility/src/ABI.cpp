@@ -26,7 +26,9 @@
 #include <functional>
 #include <memory>
 
-#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
+#include <boost/core/demangle.hpp>
+
+#if (BOOST_OS_UNIX || BOOST_OS_MACOS || BOOST_PLAT_MINGW)
 #include <cxxabi.h>
 #include <execinfo.h>
 #else
@@ -34,24 +36,11 @@
 #endif
 
 std::string Tial::Utility::ABI::demangle(const std::string &name) {
-#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
-	int status;
-	std::unique_ptr<char, std::function<void(char*)>> ptr{
-		abi::__cxa_demangle(name.c_str(), 0, 0, &status),
-		[](char *ptr) {
-			free(ptr);
-		}
-	};
-	if(status != 0)
-		return "<unknown>";
-	return ptr.get();
-#else
-#error "Platform not supported"
-#endif
+	return boost::core::demangle(name.c_str());
 }
 
 void Tial::Utility::ABI::currentStackTrace(std::function<void(const std::string&)> fn, unsigned int skipLevels) {
-#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
+#if (BOOST_OS_UNIX || BOOST_OS_MACOS || BOOST_PLAT_MINGW)
 	void *buffer[256];
 	int count = backtrace(buffer, sizeof(buffer));
 	std::unique_ptr<char*, std::function<void(char**)>> symbols{
@@ -101,7 +90,7 @@ void Tial::Utility::ABI::currentStackTrace(std::function<void(const std::string&
 }
 
 std::type_index Tial::Utility::ABI::currentExceptionType() {
-#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
+#if (BOOST_OS_UNIX || BOOST_OS_MACOS || BOOST_PLAT_MINGW)
 	std::type_info *info = abi::__cxa_current_exception_type();
 	if(!info)
 		return typeid(void);
