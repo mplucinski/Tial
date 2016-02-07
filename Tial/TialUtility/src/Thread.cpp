@@ -30,6 +30,10 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/predef.h>
 
+#if BOOST_OS_WINDOWS
+#include <Windows.h>
+#endif
+
 #define TIAL_MODULE "Tial::Utility::Thread"
 
 static thread_local std::string currentThreadName = boost::lexical_cast<std::string>(std::this_thread::get_id());
@@ -45,10 +49,13 @@ std::string Tial::Utility::Thread::name() {
 }
 
 void Tial::Utility::Thread::kill(const std::thread::native_handle_type &handle) {
-#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	if(handle == std::thread::native_handle_type())
 		THROW Exceptions::InvalidHandle();
+#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	pthread_cancel(handle);
+#elif BOOST_OS_WINDOWS
+	if(!TerminateThread(handle, 0))
+		Platform::Win32::throwLastError();
 #else
 #error "Platform not supported"
 #endif
