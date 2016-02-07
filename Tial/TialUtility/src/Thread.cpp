@@ -22,6 +22,8 @@
  */
 #include "Thread.hpp"
 
+#include "Platform.hpp"
+
 #include <thread>
 #include <unordered_map>
 

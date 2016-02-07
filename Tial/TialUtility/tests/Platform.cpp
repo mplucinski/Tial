@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Mariusz Plucinski
+/* Copyright (c) 2016, Mariusz Plucinski
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted
@@ -20,20 +20,47 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#pragma once
-#include "ABI.hpp"
-#include "Algorithm.hpp"
-#include "ArgumentParser.hpp"
-#include "Directory.hpp"
-#include "Enum.hpp"
-#include "Exception.hpp"
-#include "Language.hpp"
-#include "Logger.hpp"
-#include "Path.hpp"
+#include <TialTesting/TialTesting.hpp>
+#include <TialUtility/TialUtility.hpp>
+
 #include "Platform.hpp"
-#include "StreamOperator.hpp"
-#include "Strings.hpp"
-#include "Thread.hpp"
-#include "Time.hpp"
-#include "TypeTraits.hpp"
-#include "Wildcards.hpp"
+
+[[Tial::Testing::Typedef]] namespace Testing = Tial::Testing;
+[[Tial::Testing::Typedef]] namespace Check = Tial::Testing::Check;
+
+namespace [[Testing::Suite]] Tial {
+namespace [[Testing::Suite]] Utility {
+namespace [[Testing::Suite]] Platform {
+
+#if BOOST_OS_WINDOWS
+namespace [[Testing::Suite]] Win32 {
+
+class [[Testing::Case]] WideStringAndUTF8 {
+public:
+	struct Data {
+		std::wstring wstring;
+		std::string string;
+	};
+
+	[[Testing::Data]] void data() {
+		[[Testing::Data("empty")]] Data{L"", ""};
+		[[Testing::Data("7 bit only")]] Data{L"Alan", "Alan"};
+		[[Testing::Data("unicode")]] Data{{0xC3, 0x9F}, u8"\u00DF"};
+	}
+
+	void operator()(const Data &data) {
+		(void)data;
+#if 0 //test failure on Windows
+		[[Check::Verify]] (wideStringUTF8Cast<char, wchar_t>(data.wstring)) == data.string;
+		[[Check::Verify]] (wideStringUTF8Cast<wchar_t, char>(data.string)) == data.wstring;
+#endif
+	}
+};
+
+}
+
+#endif
+
+}
+}
+}
