@@ -389,7 +389,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		if self.track_original_lines:
 			replacement += '''
 #line {} "{}"
-'''.format(line_b, self.infile)
+'''.format(line_b, str(self.infile).replace('\\', '\\\\'))
 
 		#self.source[a:b] = replacement
 		left = self.source[:a]
