@@ -31,6 +31,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <boost/predef.h>
+
 #define TIAL_MODULE "Tial::Utility::Time"
 
 using namespace std::literals;
@@ -51,10 +53,18 @@ std::string timeCast(const TimePoint &time, Zone zone = Zone::Local) {
 
 	switch(zone) {
 	case Zone::Local:
+#if BOOST_OS_WINDOWS
+		localtime_s(&tm, &tt);
+#else
 		localtime_r(&tt, &tm);
+#endif
 		break;
 	case Zone::UTC:
+#if BOOST_OS_WINDOWS
+		gmtime_s(&tm, &tt);
+#else
 		gmtime_r(&tt, &tm);
+#endif
 		break;
 	default:
 		THROW Exception("Invalid time zone argument");
