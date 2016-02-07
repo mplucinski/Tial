@@ -31,6 +31,8 @@
 #include <dirent.h>
 #include <sys/param.h>
 #include <unistd.h>
+#elif BOOST_OS_WINDOWS
+#include <Windows.h>
 #endif
 
 #include <boost/predef.h>
@@ -47,6 +49,17 @@ Tial::Utility::NativePath Tial::Utility:: _currentPath() {
 		throw std::system_error(errno, std::system_category());
 
 	return std::string(rawPath.get());
+#elif BOOST_OS_WINDOWS
+	auto size = GetCurrentDirectoryW(0, nullptr);
+
+	std::vector<wchar_t> directory;
+	directory.resize(size);
+
+	size = GetCurrentDirectoryW(directory.size(), directory.data());
+	if(size != directory.size())
+		Platform::Win32::throwLastError();
+
+	return Platform::Win32::wideStringUTF8Cast<char, wchar_t>(directory.data());
 #else
 #error "Platform not supported"
 #endif
@@ -55,9 +68,9 @@ Tial::Utility::NativePath Tial::Utility:: _currentPath() {
 std::vector<std::shared_ptr<Tial::Utility::_DirectoryEntry<
 	Tial::Utility::NativePath
 >>> Tial::Utility::_directoryContent(const NativePath &path) {
-#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	std::vector<std::shared_ptr<_DirectoryEntry<NativePath>>> output;
 
+#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	std::unique_ptr<DIR, std::function<void(DIR*)>> directory(
 		opendir(std::string(path).c_str()),
 		[](DIR *ptr) {
@@ -69,24 +82,70 @@ std::vector<std::shared_ptr<Tial::Utility::_DirectoryEntry<
 
 	struct dirent *entry;
 	while((entry = readdir(directory.get()))) {
-		std::string name(entry->d_name);
+		std::string name{entry->d_name};
+
+#elif BOOST_OS_WINDOWS
+	struct FindHandle {
+		HANDLE handle;
+
+		explicit FindHandle(HANDLE handle): handle(handle) {
+			if(handle == INVALID_HANDLE_VALUE)
+				Platform::Win32::throwLastError();
+		}
+
+		~FindHandle() {
+			if(handle != INVALID_HANDLE_VALUE)
+				if(!FindClose(handle))
+					Platform::Win32::throwLastError();
+		}
+	};
+
+	WIN32_FIND_DATAW findData;
+	FindHandle find{FindFirstFileExW(
+		Platform::Win32::wideStringUTF8Cast<wchar_t, char>(std::string(path)+"\\*").c_str(),
+		FindExInfoBasic,
+		&findData,
+		FindExSearchNameMatch,
+		nullptr,
+		0
+	)};
+
+	do {
+		std::string name{Platform::Win32::wideStringUTF8Cast<char, wchar_t>(findData.cFileName)};
+#else
+#error "Platform not supported"
+#endif
+
 		if(name == "." || name == "..")
 			continue;
 
 		NativePath entryPath(name);
 
 		std::shared_ptr<_DirectoryEntry<NativePath>> outputEntry;
+#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 		if(entry->d_type == DT_DIR)
+#elif BOOST_OS_WINDOWS
+		if(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+#else
+#error "Platform not supported"
+#endif
 			outputEntry.reset(new Directory<NativePath>(entryPath));
 		else
 			outputEntry.reset(new _DirectoryEntry<NativePath>(entryPath));
 		output.push_back(outputEntry);
+#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	}
+#elif BOOST_OS_WINDOWS
+	} while(FindNextFileW(find.handle, &findData));
+	
+	auto error = GetLastError();
+	if(error != ERROR_NO_MORE_FILES)
+		Platform::Win32::throwLastError();
+#else
+#error "Platform not supported"
+#endif
 
 	std::sort(output.begin(), output.end());
 
 	return output;
-#else
-#error "Platform not supported"
-#endif
 }
