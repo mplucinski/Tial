@@ -53,7 +53,7 @@ public:
 	}
 
 	friend class Directory<Path>;
-	friend std::vector<std::shared_ptr<_DirectoryEntry<NativePath>>> _directoryContent(const NativePath &path);
+	TIALUTILITY_EXPORT friend std::vector<std::shared_ptr<_DirectoryEntry<NativePath>>> _directoryContent(const NativePath &path);
 };
 
 template<typename Path>
