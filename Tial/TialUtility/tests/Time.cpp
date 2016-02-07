@@ -25,6 +25,11 @@
 
 #define TIAL_MODULE "Tial::Utility::Time/Test"
 
+#if BOOST_OS_WINDOWS
+const auto timegm = _mkgmtime;
+const auto timelocal = mktime;
+#endif
+
 [[Tial::Testing::Typedef]] namespace Testing = Tial::Testing;
 [[Tial::Testing::Typedef]] namespace Check = Tial::Testing::Check;
 
