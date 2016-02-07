@@ -62,6 +62,21 @@ add_tial_library(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} SYSTEM
 	PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/.." ${Boost_INCLUDE_DIRS}
 )
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	target_include_directories(${PROJECT_NAME} SYSTEM
+		PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/compat"
+	)
+
+	add_tial_library(${PROJECT_NAME}StdCompat
+		HEADERS
+			compat/experimental/string_view
+
+		SOURCES
+			"src/compat/codecvt.cpp"
+	)
+
+	target_link_libraries(${PROJECT_NAME} Dbghelp ${PROJECT_NAME}StdCompat)
+endif()
 
 add_tial_test(Test${PROJECT_NAME}
 	SOURCES
