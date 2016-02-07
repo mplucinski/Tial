@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Mariusz Plucinski
+/* Copyright (c) 2016, Mariusz Plucinski
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted
@@ -21,19 +21,28 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
-#include "ABI.hpp"
-#include "Algorithm.hpp"
-#include "ArgumentParser.hpp"
-#include "Directory.hpp"
-#include "Enum.hpp"
-#include "Exception.hpp"
-#include "Language.hpp"
-#include "Logger.hpp"
-#include "Path.hpp"
-#include "Platform.hpp"
-#include "StreamOperator.hpp"
-#include "Strings.hpp"
-#include "Thread.hpp"
-#include "Time.hpp"
-#include "TypeTraits.hpp"
-#include "Wildcards.hpp"
+#include "TialUtilityExport.hpp"
+
+#include <experimental/string_view>
+
+#include <boost/predef.h>
+
+namespace Tial {
+namespace Utility {
+namespace Platform {
+
+#if BOOST_OS_WINDOWS
+namespace Win32 {
+
+TIALUTILITY_EXPORT void throwLastError();
+
+template<typename OutputCharacter, typename InputCharacter>
+TIALUTILITY_EXPORT std::basic_string<OutputCharacter>
+wideStringUTF8Cast(const std::experimental::basic_string_view<InputCharacter> &string);
+
+}
+#endif
+
+}
+}
+}

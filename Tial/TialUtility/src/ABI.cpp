@@ -22,6 +22,7 @@
  */
 #include "ABI.hpp"
 #include "Logger.hpp"
+#include "Platform.hpp"
 
 #include <functional>
 #include <memory>

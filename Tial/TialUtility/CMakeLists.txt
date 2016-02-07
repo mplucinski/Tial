@@ -34,6 +34,7 @@ add_tial_library(${PROJECT_NAME}
 		Language.hpp
 		Logger.hpp
 		Path.hpp
+		Platform.hpp
 		StreamOperator.hpp
 		Strings.hpp
 		Thread.hpp
@@ -49,6 +50,7 @@ add_tial_library(${PROJECT_NAME}
 		src/Exception.cpp
 		src/Logger.cpp
 		src/Path.cpp
+		src/Platform.cpp
 		src/Thread.cpp
 
 	CMAKE_CONFIG_FILE
@@ -86,6 +88,7 @@ add_tial_test(Test${PROJECT_NAME}
 		tests/Exception.cpp
 		tests/Language.cpp
 		tests/Path.cpp
+		tests/Platform.cpp
 		tests/StreamOperator.cpp
 		tests/Strings.cpp
 		tests/Time.cpp
