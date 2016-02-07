@@ -45,8 +45,12 @@ std::pair<int, std::unique_ptr<char*, std::function<void(char**)>>> buildArgs(
 		}
 	);
 	for(int i = 0; i < argc; ++i) {
-		argv.get()[i] = new char[args[i].size()+1];
-		strcpy(argv.get()[i], args[i].c_str());
+		size_t size = args[i].size();
+		const char *src = args[i].data();
+
+		argv.get()[i] = new char[size+1];
+		std::copy(src, src+size, argv.get()[i]);
+		argv.get()[i][size] = 0;
 	}
 	return std::make_pair(argc, std::move(argv));
 }
