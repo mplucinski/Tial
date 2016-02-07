@@ -167,29 +167,39 @@ set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_LIBRARIES ${add_tial_libra
 		)
 	endforeach()
 
-	list(APPEND LIBRARY_ARGS ${TARGET})
+	if(add_tial_library_SOURCES)
+		if(BUILD_TYPE MATCHES "MINSIZEREL")
+			add_library(${TARGET} STATIC)
+		else()
+			add_library(${TARGET} SHARED)
+		endif()
+		target_sources(${TARGET} PRIVATE ${add_tial_library_SOURCES})
 
-	if(NOT BUILD_TYPE MATCHES "MINSIZEREL")
-		list(APPEND LIBRARY_ARGS SHARED)
+		set(EXPORT_HEADER "${CMAKE_CURRENT_BINARY_DIR}/${TARGET}Export.hpp")
+		generate_export_header(${TARGET}
+				EXPORT_FILE_NAME ${EXPORT_HEADER}
+		)
+		target_sources(${TARGET} PUBLIC ${EXPORT_HEADER})
+
+		set_property(TARGET ${TARGET} PROPERTY RESOURCE ${add_tial_library_RESOURCES})
+
+		if(add_tial_library_CMAKE_SOURCES)
+			target_sources(${TARGET} PRIVATE ${add_tial_library_CMAKE_SOURCES})
+		endif()
+
+		set(PUBLIC PUBLIC)
+	else()
+		add_library(${TARGET} INTERFACE)
+		set(PUBLIC INTERFACE)
 	endif()
 
-	list(APPEND LIBRARY_ARGS
-			${add_tial_library_HEADERS}
-			${add_tial_library_SOURCES}
-			${add_tial_library_RESOURCES}
-			${add_tial_library_CMAKE_SOURCES}
-	)
-	add_library(${LIBRARY_ARGS})
+	foreach(HEADER ${add_tial_library_HEADERS})
+		if(NOT IS_ABSOLUTE "${HEADER}")
+			set(HEADER "${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}")
+		endif()
+		target_sources(${TARGET} ${PUBLIC} ${HEADER})
+	endforeach()
 
-	set(EXPORT_HEADER "${CMAKE_CURRENT_BINARY_DIR}/${TARGET}Export.hpp")
-	generate_export_header(${TARGET}
-			EXPORT_FILE_NAME ${EXPORT_HEADER}
-	)
-	set_property(TARGET ${TARGET} APPEND PROPERTY SOURCES ${EXPORT_HEADER})
-	list(APPEND add_tial_library_HEADERS ${EXPORT_HEADER})
-
-	set_property(TARGET ${TARGET} PROPERTY PUBLIC_HEADER ${add_tial_library_HEADERS})
-	set_property(TARGET ${TARGET} PROPERTY RESOURCE ${add_tial_library_RESOURCES})
 	target_link_libraries(${TARGET} PUBLIC ${CMAKE_THREAD_LIBS_INIT} ${add_tial_library_LIBRARIES})
 
 	install(TARGETS ${TARGET}

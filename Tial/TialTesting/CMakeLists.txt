@@ -46,9 +46,8 @@ add_tial_library(dtl
 		${DLT_SOURCE_DIR}/dtl/Ses.hpp
 		${DLT_SOURCE_DIR}/dtl/variables.hpp
 )
-set_property(TARGET dtl PROPERTY LINKER_LANGUAGE CXX)
 target_include_directories(dtl
-	PUBLIC "${DLT_SOURCE_DIR}"
+	INTERFACE "${DLT_SOURCE_DIR}"
 )
 
 add_tial_library(${PROJECT_NAME}
