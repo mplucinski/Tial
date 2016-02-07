@@ -55,6 +55,9 @@ function(tial_set_common_settings)
 	endif()
 
 	# System-specific settings
+	if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+		set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" PARENT_SCOPE)
+	endif()
 
 	# Build configuration
 	set(TIAL_UTILITY_LOGGER_DEFAULT_COMPILE_LEVEL 25)
