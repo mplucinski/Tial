@@ -50,8 +50,12 @@ function(tial_set_common_settings)
 		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} APPEND PROPERTY COMPILE_OPTIONS "-Wall")
 		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} APPEND PROPERTY COMPILE_OPTIONS "-Wextra")
 		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} APPEND PROPERTY COMPILE_OPTIONS "-Werror")
+		
+		if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+			set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} APPEND PROPERTY COMPILE_OPTIONS "-Wno-language-extension-token")
+		endif()
 	else()
-		message(FATAL_ERROR "Unknown compiler ${CMAKE_CXX_COMPILER_ID}, can not set flags correctly")
+		message(FATAL_ERROR "Unknown compiler ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER}), can not set flags correctly")
 	endif()
 
 	# System-specific settings
