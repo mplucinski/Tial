@@ -30,6 +30,10 @@ include(TialTesting.cmake)
 find_path(DLT_SOURCE_DIR dtl/dtl.hpp
 	HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../Dependencies/dtl-cpp
 )
+if(NOT DLT_SOURCE_DIR)
+	message("${CMAKE_CURRENT_SOURCE_DIR}/../../Dependencies/dtl-cpp")
+	message(FATAL_ERROR "Could not find dtl directory (${DLT_SOURCE_DIR})")
+endif()
 
 add_tial_library(dtl
 	HEADERS
