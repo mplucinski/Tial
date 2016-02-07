@@ -37,7 +37,7 @@ class StandardException;
 
 class TIALUTILITY_EXPORT Exception: public std::exception {
 public:
-	class CommonArgs {
+	class TIALUTILITY_EXPORT CommonArgs {
 		std::string _module;
 		std::string _file;
 		unsigned int _line;
