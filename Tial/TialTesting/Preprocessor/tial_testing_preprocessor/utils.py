@@ -28,3 +28,19 @@ def escape_string(s):
 
 def escape_comment(s):
 	return s.replace('/*', '/ *').replace('*/', '* /')
+
+if __name__ == '__main__':
+	import unittest
+
+	class TestCase(unittest.TestCase):
+		def test_escape_string(self):
+			self.assertEqual(escape_string(''), '')
+			self.assertEqual(escape_string('a'), 'a')
+			self.assertEqual(escape_string('a"b'), 'a\\"b')
+
+		def test_escape_comment(self):
+			self.assertEqual(escape_comment(''), '')
+			self.assertEqual(escape_comment('a'), 'a')
+			self.assertEqual(escape_comment('a/*b*/c'), 'a/ *b* /c')
+
+	unittest.main()

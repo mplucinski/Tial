@@ -82,3 +82,37 @@ class RegexCollection:
 					regex = r
 
 		return (match, regex)
+
+
+if __name__ == '__main__':
+	import unittest
+
+	class TestCase(unittest.TestCase):
+		def test_regex_collection(self):
+			def check(enable_full_match_optimization):
+				RegexCollection.enable_full_match_optimization = enable_full_match_optimization
+				collection = RegexCollection([
+					Regex('cow',
+						'[Cc]ow',
+						'bee'
+					),
+					Regex('bull',
+						'[Bb]ull',
+						'fly'
+					)
+				])
+				string = 'On a meadow, there is a cow. Nearby, there\'s a bull'
+				(match, regex) = collection.search(string, 0)
+				self.assertEqual(match.start(), 24)
+				self.assertEqual(match.end(), 27)
+				self.assertEqual(regex.name, 'cow')
+
+				(match, regex) = collection.search(string, 27)
+				self.assertEqual(match.start(), 47)
+				self.assertEqual(match.end(), 51)
+				self.assertEqual(regex.name, 'bull')
+
+			check(False)
+			check(True)
+
+	unittest.main()
