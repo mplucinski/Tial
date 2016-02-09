@@ -26,10 +26,11 @@
 import re
 
 class Regex:
-	def __init__(self, name, regex, replacement):
+	def __init__(self, name, regex, replacement, post_process=False):
 		self.name = name
 		self.regex = regex
 		self.replacement = replacement
+		self.post_process = post_process
 
 	def __repr__(self):
 		return 'Regex(name = {name}, regex = {regex}, replacement = {replacement})'.format(

@@ -24,10 +24,11 @@
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from . import regex
-from . import source
 from . import utils
 
+import io
 import re
+import string
 import sys
 
 class Suite:
@@ -109,6 +110,10 @@ class Preprocessor:
 	attr_data = 'Tial::Testing::Data'
 
 	res = regex.RegexCollection([
+		regex.Regex('hashline',
+			r'# (?P<line>[0-9]+)\s+"(?P<file>[^"]*)"(\s+[0-9]+)?[^\n]*\n',
+			None
+		),
 		regex.Regex('quote',
 			r'"',
 			r'"',
@@ -156,57 +161,64 @@ static constexpr ::std::experimental::string_view _caseName() {
 		),
 		regex.Regex('expect_fail',
 			r'\[\[(?P<attr>[^\]]+ExpectFail)\]\]\s*;',
-			r'/* [[\g<attr>]] */ ::Tial::Testing::Check::expectFail(TIAL_TESTING_POINTINFO);'
+			r'/* [[\g<attr>]] */ ::Tial::Testing::Check::expectFail({point_info});',
+			True
 		),
 		regex.Regex('fail',
 			r'\[\[(?P<attr>[^\]]+Fail)\]\]\s*;',
-			r'/* [[\g<attr>]] */ ::Tial::Testing::Check::fail(TIAL_TESTING_POINTINFO);'
+			r'/* [[\g<attr>]] */ ::Tial::Testing::Check::fail({point_info});',
+			True
 		),
 		regex.Regex('verify',
 			r'\[\[(?P<attr>[^\]]+Verify)\]\](?P<expr>[^;]+);',
-			lambda m: r'/* [[{attr}]] {expr} */ {code}'.format(
-				attr=utils.escape_comment(m.group('attr')),
-				expr=utils.escape_comment(m.group('expr')),
-				code=Preprocessor.handle_verify(m.group('expr'), '')
-			)
+			lambda match: r'/* [[{attr}]] {expr} */ {code}'.format(
+				attr=utils.escape_comment(match.group('attr')),
+				expr=utils.escape_comment(match.group('expr')),
+				code=Preprocessor.handle_verify(match.group('expr'), '')
+			),
+			True
 		),
 		regex.Regex('throw',
 			r'\[\[(?P<attr>[^\]]+Throw)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);',
-			lambda m: r'''/* [[{attr}({type_c})]] {expr_c} */
-::Tial::Testing::Check::throws<{type}>(TIAL_TESTING_POINTINFO, "{expr_s}", [&](){{ {expr}; }});'''.format(
-				attr=utils.escape_comment(m.group('attr')),
-				type_c=utils.escape_comment(m.group('type')),
-				type=m.group('type'),
-				expr_c=utils.escape_comment(m.group('expr')),
-				expr_s=utils.escape_string(m.group('expr')),
-				expr=m.group('expr')
-			)
+			lambda match: r'''/* [[{attr}({type_c})]] {expr_c} */
+::Tial::Testing::Check::throws<{type}>({{point_info}}, "{expr_s}", [&](){{{{ {expr}; }}}});'''.format(
+				attr=utils.escape_comment(match.group('attr')),
+				type_c=utils.escape_comment(match.group('type')),
+				type=match.group('type'),
+				expr_c=utils.escape_comment(match.group('expr')),
+				expr_s=utils.escape_string(match.group('expr')),
+				expr=match.group('expr')
+			),
+			True
 		),
 		regex.Regex('throw_exact',
 			r'\[\[(?P<attr>[^\]]+ThrowExact)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);',
 			r'''/* [[\g<attr>(\g<type>)]] \g<expr> */
-::Tial::Testing::Check::throws<\g<type>>(TIAL_TESTING_POINTINFO, "\g<expr>", [&](){ \g<expr>; }, true);'''
+::Tial::Testing::Check::throws<\g<type>>({point_info}, "\g<expr>", [&](){{ \g<expr>; }}, true);''',
+			True
 		),
 		regex.Regex('throw_equal',
 			r'\[\[(?P<attr>[^\]]+ThrowEqual)\((?P<inst>.+?)\)\]\](?P<expr>[^;]+);',
-			lambda m: r'''/* [[{attr}({inst})]] {expr} */
-::Tial::Testing::Check::throwsEqual(TIAL_TESTING_POINTINFO, "{inst_s}", {inst}, "{expr_s}", [&](){{ {expr}; }});'''.format(
-				attr=m.group('attr'),
-				inst=m.group('inst'),
-				inst_s=utils.escape_string(m.group('inst')),
-				expr=m.group('expr'),
-				expr_s=utils.escape_string(m.group('expr'))
-			)
+			lambda match: r'''/* [[{attr}({inst})]] {expr} */
+::Tial::Testing::Check::throwsEqual({{point_info}}, "{inst_s}", {inst}, "{expr_s}", [&](){{{{ {expr}; }}}});'''.format(
+				attr=match.group('attr'),
+				inst=match.group('inst'),
+				inst_s=utils.escape_string(match.group('inst')),
+				expr=match.group('expr'),
+				expr_s=utils.escape_string(match.group('expr'))
+			),
+			True
 		),
 		regex.Regex('no_throw',
 			r'\[\[(?P<attr>[^\]]+NoThrow)\]\](?P<expr>[^;]+);',
-			lambda m: r'''/* [[{attr}]] {expr_c} */
-::Tial::Testing::Check::noThrows<typename std::decay<decltype({expr})>::type>(TIAL_TESTING_POINTINFO, "{expr_s}", [&]()->typename std::decay<decltype({expr})>::type{{ return {expr}; }});'''.format(
-				attr=m.group('attr'),
-				expr=m.group('expr'),
-				expr_c=utils.escape_comment(m.group('expr')),
-				expr_s=utils.escape_string(m.group('expr'))
-			)
+			lambda match: r'''/* [[{attr}]] {expr_c} */
+::Tial::Testing::Check::noThrows<typename std::decay<decltype({expr})>::type>({{point_info}}, "{expr_s}", [&]()->typename std::decay<decltype({expr})>::type{{{{ return {expr}; }}}});'''.format(
+				attr=match.group('attr'),
+				expr=match.group('expr'),
+				expr_c=utils.escape_comment(match.group('expr')),
+				expr_s=utils.escape_string(match.group('expr'))
+			),
+			True
 		),
 		regex.Regex('data_with_name',
 			r'\[\[(?P<attr>[^\]]+Data)\("(?P<name>[^"]*)"\)\]\]\s+(?P<expr>[^;]+);',
@@ -237,7 +249,9 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			self.oufile.parent.mkdir(parents=True)
 
 		self.source = open(str(self.infile), 'rb').read().decode('utf-8')
-		self.source = source.Source(self.source)
+		self.source_line = 0
+
+		self.target = io.StringIO()
 
 		self.aliases = {}
 		self.suites = []
@@ -274,15 +288,22 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		return (int(directive[1]), directive[2], end)
 
 	def re_replace(self, match, regex, replacement):
-		if replacement is None:
-			return
-
 		a = match.start()
 		b = match.end()
-		replacement = regex.regex.sub(replacement, self.source[a:b])
-		self.source[a:b] = replacement
-		if self.pos >= a:
-			self.pos = a + len(replacement)
+		assert b == self.pos
+		original = self.source[a:b]
+		self.target.write(self.source[self.last_pos:a])
+		if replacement is None:
+			self.target.write(original)
+		else:
+			replacement = regex.regex.sub(replacement, original)
+			point_info = '(::Tial::Testing::Check::PointInfo{__FILE__, __LINE__, _caseName()})'
+			if regex.post_process:
+				replacement = replacement.format(point_info=point_info)
+			self.source_line += self.source.count('\n', self.last_pos, b)
+			self.target.write(replacement)
+			self.target.write('\n#line {} "{}"\n'.format(self.source_line, str(self.infile).replace('\\', '\\\\')))
+		self.last_pos = self.pos
 
 	def check_attr(self, attr, spec):
 		attr = attr.split('::')
@@ -341,7 +362,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			r = expression[e[0]+e[1]:]
 			e = expression[e[0]:e[0]+e[1]]
 			handler += '<'+[ i[1] for i in op if i[0] == e ][0]+'>'
-		handler += '(TIAL_TESTING_POINTINFO, '
+		handler += '({point_info}, '
 		handler += '"'+utils.escape_string(expression)+'"'
 		if not e:
 			handler += ', ('+expression+')'
@@ -362,28 +383,36 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		text = text.replace('\t', '\\t')
 		return text
 
-	def fillin_lines(self):
+	def produce_output(self, fn_output):
+		fn_output(self.target.getvalue())
+		return
+
 		line = 0
 		i = 0
+		last = 0
+		source_length = len(self.source)
 		while True:
 			if line != self.source.lines[i]:
+				fn_output(self.source[last:i])
+				last = i
 				original_line = self.source.lines[i]
 				line_cmd = '\n#line {} "{}"\n'.format(original_line+1, str(self.infile).replace('\\', '\\\\'))
-				self.source[i-1] += line_cmd
+				fn_output(line_cmd)
 				line = original_line
-				i += len(line_cmd)
 
 			if self.source[i] == '\n':
 				line += 1
 
 			i += 1
-			if i >= len(self.source):
+			if i >= source_length:
 				break
+		fn_output(self.source[last:])
 
 	def process(self):
 		self.log('Processing...')
 
 		self.pos = 0
+		self.last_pos = 0
 		while True:
 			(match, regex) = self.get_next()
 			if match is None or regex is None:
@@ -414,10 +443,13 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 						self.pos = match.start()+1
 						self.log('within quoting ({}), this match is ignored'.format(self.blocks_stack[-1]))
 				else:
-					if regex.name == 'inline_comment':
+					if regex.name == 'hashline':
+						self.infile = match.group('file')
+						self.source_line = int(match.group('line'))
+					elif regex.name == 'inline_comment':
 						pass
 					elif regex.name == 'quote':
-						self.blocks_stack.append(Quoting(match.start(), self.source.lines[match.start()]))
+						self.blocks_stack.append(Quoting(match.start(), self.source_line+1))
 						self.dump_stack()
 						continue
 					elif regex.name == 'attr_ns_alias':
@@ -469,7 +501,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 						if not isinstance(self.blocks_stack[-1], Block):
 							self.blocks_stack[-1].has_data = match.group('name')
 					elif regex.name == 'brace_open':
-						self.blocks_stack.append(Block(match.start(), match.end(), self.source.lines[match.start()], match.groups()))
+						self.blocks_stack.append(Block(match.start(), match.end(), self.source_line+1, match.groups()))
 						self.dump_stack()
 					elif regex.name == 'brace_close':
 						if not isinstance(self.blocks_stack[-1], Block):
@@ -481,24 +513,24 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 					self.re_replace(match, regex, replacement)
 			except Exception as e:
 				sys.stderr.write('{}\n'.format(e))
-				sys.stderr.write('In line: {}\n'.format(self.source.lines[match.start()]+1))
+				sys.stderr.write('In line: {}\n'.format(self.source_line+1))
 				sys.stderr.write('Expression: {}\n'.format(match.group(0)))
 				sys.stderr.write('Regex: {}\n'.format(regex))
+				sys.stderr.write('Match: {}\n'.format(match))
 				sys.stderr.write('Blocks stack: {}\n'.format(self.blocks_stack))
 				raise
 
-		self.source += '\n'
-		self.source += 'namespace {\n';
+		self.target.write('\n')
+		self.target.write('namespace {\n')
 		for suite in self.suites:
-			self.source += '::Tial::Testing::Suite<\n'
+			self.target.write('::Tial::Testing::Suite<\n')
 			if len(suite.cases) > 0:
-				self.source += '\t' + ',\n\t'.join([ case.full_name for case in suite.cases ]) + '\n'
-			self.source += '> __testSuite_{name_raw}("{name}");\n'.format(
+				self.target.write('\t' + ',\n\t'.join([ case.full_name for case in suite.cases ]) + '\n')
+			self.target.write('> __testSuite_{name_raw}("{name}");\n'.format(
 				name=suite.full_name, name_raw=suite.full_name.replace('::', '__')
-			)
-		self.source += '}\n';
+			))
+		self.target.write('}\n')
 
-		if self.track_original_lines:
-			self.fillin_lines()
-
-		open(str(self.oufile), 'wb').write(self.source.encode('utf-8'))
+		with open(str(self.oufile), 'wb') as output:
+			if self.track_original_lines:
+				self.produce_output(lambda x: output.write(x.encode('utf-8')))

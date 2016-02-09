@@ -31,5 +31,4 @@ function(add_python_test MODULE_NAME)
 endfunction()
 
 add_python_test(tial_testing_preprocessor/regex.py)
-add_python_test(tial_testing_preprocessor/source.py)
 add_python_test(tial_testing_preprocessor/utils.py)
