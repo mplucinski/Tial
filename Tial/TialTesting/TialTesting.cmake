@@ -44,6 +44,11 @@ function(add_tial_test TARGET)
 			DEPENDS "${TialTestingPreprocessor}" "${SOURCE}"
 			COMMAND
 				${TialTestingPreprocessor} "${SOURCE}" -o "${OUTPUT}"
+					--compiler "${CMAKE_CXX_COMPILER}"
+					--compiler-definitions \\\\$<JOIN:$<TARGET_PROPERTY:${TARGET},COMPILE_DEFINITIONS>,$<COMMA>>
+					--compiler-options \\\\$<JOIN:$<TARGET_PROPERTY:${TARGET},COMPILE_OPTIONS>,$<COMMA>>
+					--compiler-include-directories \\\\$<JOIN:$<TARGET_PROPERTY:${TARGET},INCLUDE_DIRECTORIES>,$<COMMA>>
+					--compiler-cxx-standard $<TARGET_PROPERTY:${TARGET},CXX_STANDARD>
 		)
 		list(APPEND PROCESSED_SOURCES "${OUTPUT}")
 	endforeach()
