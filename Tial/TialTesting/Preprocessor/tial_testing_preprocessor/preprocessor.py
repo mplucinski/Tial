@@ -24,9 +24,11 @@
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from . import regex
+from . import source
 from . import utils
 
 import re
+import sys
 
 class Suite:
 	def __init__(self, name, full_name):
@@ -235,6 +237,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			self.oufile.parent.mkdir(parents=True)
 
 		self.source = open(str(self.infile), 'rb').read().decode('utf-8')
+		self.source = source.Source(self.source)
 
 		self.aliases = {}
 		self.suites = []
@@ -270,68 +273,16 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		assert directive[3] == ''
 		return (int(directive[1]), directive[2], end)
 
-	get_line_optimized = True
-	def get_line(self, pos):
-		if not self.get_line_optimized:
-			line = 1
-			i = 0
-			while i < min(pos, len(self.source)):
-				if self.source.find(self.hash_line, i) == i:
-					(line, _, end) = self.parse_hash_line(i)
-					assert self.source[end] == '\n'
-					i = end
-				elif self.source[i] == '\n':
-					line += 1
-				i += 1
-			return line
-		else:
-			last_cached = len(self.line_no_cache)-1
-			if last_cached >= pos:
-				return self.line_no_cache[pos]
-
-			line = self.line_no_cache[last_cached]
-			i = last_cached+1
-			while i < min(pos, len(self.source)):
-				if self.source.find(self.hash_line, i) == i:
-					(line, _, end) = self.parse_hash_line(i)
-					assert self.source[end] == '\n'
-					for j in range(i, end):
-						assert i == len(self.line_no_cache)
-						self.line_no_cache.append(line)
-						i += 1
-					assert i == end
-				elif self.source[i] == '\n':
-					line += 1
-				assert i == len(self.line_no_cache)
-				self.line_no_cache.append(line)
-				i += 1
-			return line
-
-	def drop_line_no_cache(self, pos):
-		if len(self.line_no_cache) >= pos:
-			del self.line_no_cache[pos:]
-
 	def re_replace(self, match, regex, replacement):
 		if replacement is None:
 			return
 
 		a = match.start()
 		b = match.end()
-		line_b = self.get_line(b)
 		replacement = regex.regex.sub(replacement, self.source[a:b])
-		if self.pos == b:
+		self.source[a:b] = replacement
+		if self.pos >= a:
 			self.pos = a + len(replacement)
-
-		if self.track_original_lines:
-			replacement += '''
-#line {} "{}"
-'''.format(line_b, str(self.infile).replace('\\', '\\\\'))
-
-		#self.source[a:b] = replacement
-		left = self.source[:a]
-		right = self.source[b:]
-		self.source = left + replacement + right
-		self.drop_line_no_cache(a)
 
 	def check_attr(self, attr, spec):
 		attr = attr.split('::')
@@ -342,7 +293,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		return attr == spec
 
 	def get_next(self):
-		(match, regex) = self.res.search(self.source, self.pos)
+		(match, regex) = self.res.search(str(self.source), self.pos)
 		if match is not None:
 			self.pos = match.end()
 		return (match, regex)
@@ -411,6 +362,24 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		text = text.replace('\t', '\\t')
 		return text
 
+	def fillin_lines(self):
+		line = 0
+		i = 0
+		while True:
+			if line != self.source.lines[i]:
+				original_line = self.source.lines[i]
+				line_cmd = '\n#line {} "{}"\n'.format(original_line+1, str(self.infile).replace('\\', '\\\\'))
+				self.source[i-1] += line_cmd
+				line = original_line
+				i += len(line_cmd)
+
+			if self.source[i] == '\n':
+				line += 1
+
+			i += 1
+			if i >= len(self.source):
+				break
+
 	def process(self):
 		self.log('Processing...')
 
@@ -422,11 +391,12 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 
 			if self.verbose:
 				self.log('Found match of {} (line {}, bytes {} - {})'.format(
-					regex.name, self.get_line(match.start()), match.start(), match.end()
+					regex.name, self.source.lines[match.start()], match.start(), match.end()
 				))
-				left = self.source[match.start()-3:match.start()]
-				middle = self.source[match.start():match.end()]
-				right = self.source[match.end():match.end()+3]
+				source = str(self.source)
+				left = source[match.start()-3:match.start()]
+				middle = source[match.start():match.end()]
+				right = source[match.end():match.end()+3]
 				left = self._escape_for_log(left)
 				middle = self._escape_for_log(middle)
 				right = self._escape_for_log(right)
@@ -447,7 +417,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 					if regex.name == 'inline_comment':
 						pass
 					elif regex.name == 'quote':
-						self.blocks_stack.append(Quoting(match.start(), self.get_line(match.start())))
+						self.blocks_stack.append(Quoting(match.start(), self.source.lines[match.start()]))
 						self.dump_stack()
 						continue
 					elif regex.name == 'attr_ns_alias':
@@ -499,7 +469,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 						if not isinstance(self.blocks_stack[-1], Block):
 							self.blocks_stack[-1].has_data = match.group('name')
 					elif regex.name == 'brace_open':
-						self.blocks_stack.append(Block(match.start(), match.end(), self.get_line(match.start()), match.groups()))
+						self.blocks_stack.append(Block(match.start(), match.end(), self.source.lines[match.start()], match.groups()))
 						self.dump_stack()
 					elif regex.name == 'brace_close':
 						if not isinstance(self.blocks_stack[-1], Block):
@@ -511,8 +481,10 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 					self.re_replace(match, regex, replacement)
 			except Exception as e:
 				sys.stderr.write('{}\n'.format(e))
-				sys.stderr.write('In line: {}\n'.format(self.get_line(match.start())))
+				sys.stderr.write('In line: {}\n'.format(self.source.lines[match.start()]+1))
 				sys.stderr.write('Expression: {}\n'.format(match.group(0)))
+				sys.stderr.write('Regex: {}\n'.format(regex))
+				sys.stderr.write('Blocks stack: {}\n'.format(self.blocks_stack))
 				raise
 
 		self.source += '\n'
@@ -525,5 +497,8 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 				name=suite.full_name, name_raw=suite.full_name.replace('::', '__')
 			)
 		self.source += '}\n';
+
+		if self.track_original_lines:
+			self.fillin_lines()
 
 		open(str(self.oufile), 'wb').write(self.source.encode('utf-8'))

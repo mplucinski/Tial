@@ -46,7 +46,7 @@ def main():
 	except:
 		sys.stderr.write('Dumping progess to TialTesting.dump\n')
 		with open('TialTesting.dump', 'w') as f:
-			f.write(p.source)
+			f.write(str(p.source))
 		raise
 
 if __name__ == '__main__':
