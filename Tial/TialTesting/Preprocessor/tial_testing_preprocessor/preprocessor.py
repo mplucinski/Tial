@@ -172,8 +172,8 @@ static constexpr ::std::experimental::string_view _caseName() {
 		regex.Regex('verify',
 			r'\[\[(?P<attr>[^\]]+Verify)\]\](?P<expr>[^;]+);',
 			lambda match: r'/* [[{attr}]] {expr} */ {code}'.format(
-				attr=utils.escape_comment(match.group('attr')),
-				expr=utils.escape_comment(match.group('expr')),
+				attr=utils.escape_comment(match.group('attr'), True),
+				expr=utils.escape_comment(match.group('expr'), True),
 				code=Preprocessor.handle_verify(match.group('expr'), '')
 			),
 			True
@@ -182,12 +182,12 @@ static constexpr ::std::experimental::string_view _caseName() {
 			r'\[\[(?P<attr>[^\]]+Throw)\((?P<type>[^\)]+)\)\]\](?P<expr>[^;]+);',
 			lambda match: r'''/* [[{attr}({type_c})]] {expr_c} */
 ::Tial::Testing::Check::throws<{type}>({{point_info}}, "{expr_s}", [&](){{{{ {expr}; }}}});'''.format(
-				attr=utils.escape_comment(match.group('attr')),
-				type_c=utils.escape_comment(match.group('type')),
+				attr=utils.escape_comment(match.group('attr'), True),
+				type_c=utils.escape_comment(match.group('type'), True),
 				type=match.group('type'),
-				expr_c=utils.escape_comment(match.group('expr')),
-				expr_s=utils.escape_string(match.group('expr')),
-				expr=match.group('expr')
+				expr_c=utils.escape_comment(match.group('expr'), True),
+				expr_s=utils.escape_string(match.group('expr'), True),
+				expr=utils.escape_expr(match.group('expr'), True)
 			),
 			True
 		),
@@ -201,11 +201,11 @@ static constexpr ::std::experimental::string_view _caseName() {
 			r'\[\[(?P<attr>[^\]]+ThrowEqual)\((?P<inst>.+?)\)\]\](?P<expr>[^;]+);',
 			lambda match: r'''/* [[{attr}({inst})]] {expr} */
 ::Tial::Testing::Check::throwsEqual({{point_info}}, "{inst_s}", {inst}, "{expr_s}", [&](){{{{ {expr}; }}}});'''.format(
-				attr=match.group('attr'),
-				inst=match.group('inst'),
-				inst_s=utils.escape_string(match.group('inst')),
-				expr=match.group('expr'),
-				expr_s=utils.escape_string(match.group('expr'))
+				attr=utils.escape_comment(match.group('attr'), True),
+				inst=utils.escape_expr(match.group('inst'), True),
+				inst_s=utils.escape_string(match.group('inst'), True),
+				expr=utils.escape_expr(match.group('expr'), True),
+				expr_s=utils.escape_string(match.group('expr'), True)
 			),
 			True
 		),
@@ -214,9 +214,9 @@ static constexpr ::std::experimental::string_view _caseName() {
 			lambda match: r'''/* [[{attr}]] {expr_c} */
 ::Tial::Testing::Check::noThrows<typename std::decay<decltype({expr})>::type>({{point_info}}, "{expr_s}", [&]()->typename std::decay<decltype({expr})>::type{{{{ return {expr}; }}}});'''.format(
 				attr=match.group('attr'),
-				expr=match.group('expr'),
-				expr_c=utils.escape_comment(match.group('expr')),
-				expr_s=utils.escape_string(match.group('expr'))
+				expr=utils.escape_expr(match.group('expr'), True),
+				expr_c=utils.escape_comment(match.group('expr'), True),
+				expr_s=utils.escape_string(match.group('expr'), True)
 			),
 			True
 		),
@@ -299,7 +299,11 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			replacement = regex.regex.sub(replacement, original)
 			point_info = '(::Tial::Testing::Check::PointInfo{__FILE__, __LINE__, _caseName()})'
 			if regex.post_process:
-				replacement = replacement.format(point_info=point_info)
+				try:
+					replacement = replacement.format(point_info=point_info)
+				except:
+					sys.stderr.write('Replacement: "{}"\n'.format(replacement))
+					raise
 			self.source_line += self.source.count('\n', self.last_pos, b)
 			self.target.write(replacement)
 			self.target.write('\n#line {} "{}"\n'.format(self.source_line, str(self.infile).replace('\\', '\\\\')))
@@ -363,13 +367,13 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			e = expression[e[0]:e[0]+e[1]]
 			handler += '<'+[ i[1] for i in op if i[0] == e ][0]+'>'
 		handler += '({point_info}, '
-		handler += '"'+utils.escape_string(expression)+'"'
+		handler += '"'+utils.escape_string(expression, True)+'"'
 		if not e:
 			handler += ', ('+expression+')'
 		else:
-			handler += ', "' + utils.escape_string(e) + '"'
-			handler += ', "' + utils.escape_string(l) + '", ' + l
-			handler += ', "' + utils.escape_string(r) + '", ' + r
+			handler += ', "' + utils.escape_string(e, True) + '"'
+			handler += ', "' + utils.escape_string(l, True) + '", ' + l
+			handler += ', "' + utils.escape_string(r, True) + '", ' + r
 		handler += ')'
 		replacement = replacement + handler
 		return replacement + ';'

@@ -23,24 +23,55 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-def escape_string(s):
-	return s.replace('"', '\\"')
+class Escaper:
+	def __init__(self, repl = []):
+		self.repl = repl
 
-def escape_comment(s):
-	return s.replace('/*', '/ *').replace('*/', '* /')
+	def __call__(self, s, escape_curly_braces):
+		for i in self.repl + ( [('{', '{{'), ('}', '}}')] if escape_curly_braces else [] ):
+			s = s.replace(*i)
+		return s
+
+escape_string = Escaper([
+	('"', '\\"')
+])
+escape_comment = Escaper([
+	('/*', '/ *'),
+	('*/', '* /')
+])
+escape_expr = Escaper()
 
 if __name__ == '__main__':
 	import unittest
 
 	class TestCase(unittest.TestCase):
 		def test_escape_string(self):
-			self.assertEqual(escape_string(''), '')
-			self.assertEqual(escape_string('a'), 'a')
-			self.assertEqual(escape_string('a"b'), 'a\\"b')
+			self.assertEqual(escape_string('', False), '')
+			self.assertEqual(escape_string('a', False), 'a')
+			self.assertEqual(escape_string('a"b', False), 'a\\"b')
+			self.assertEqual(escape_string('a"{b', False), 'a\\"{b')
+			self.assertEqual(escape_string('', True), '')
+			self.assertEqual(escape_string('a', True), 'a')
+			self.assertEqual(escape_string('a"b', True), 'a\\"b')
+			self.assertEqual(escape_string('a"{b', True), 'a\\"{{b')
 
 		def test_escape_comment(self):
-			self.assertEqual(escape_comment(''), '')
-			self.assertEqual(escape_comment('a'), 'a')
-			self.assertEqual(escape_comment('a/*b*/c'), 'a/ *b* /c')
+			self.assertEqual(escape_comment('', False), '')
+			self.assertEqual(escape_comment('a', False), 'a')
+			self.assertEqual(escape_comment('a/*b*/c', False), 'a/ *b* /c')
+			self.assertEqual(escape_comment('a/*b{c*/d', False), 'a/ *b{c* /d')
+			self.assertEqual(escape_comment('', True), '')
+			self.assertEqual(escape_comment('a', True), 'a')
+			self.assertEqual(escape_comment('a/*b*/c', True), 'a/ *b* /c')
+			self.assertEqual(escape_comment('a/*b{c*/d', True), 'a/ *b{{c* /d')
+
+		def test_escape_expr(self):
+			self.assertEqual(escape_expr('', False), '')
+			self.assertEqual(escape_expr('a', False), 'a')
+			self.assertEqual(escape_expr('a{b', False), 'a{b')
+			self.assertEqual(escape_expr('', True), '')
+			self.assertEqual(escape_expr('a', True), 'a')
+			self.assertEqual(escape_expr('a{b', True), 'a{{b')
+
 
 	unittest.main()
