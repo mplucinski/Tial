@@ -45,12 +45,21 @@ class Suite:
 		return replacement
 
 class Quoting:
-	def __init__(self, pos, line):
+	def __init__(self, name, pos, line):
+		self.name = name
 		self.pos = pos
 		self.line = line
 
 	def __repr__(self):
-		return '<Quoting from line {}>'.format(self.line)
+		return '<{} from line {}>'.format(self.name, self.line)
+
+class SingleQuoting(Quoting):
+	def __init__(self, pos, line):
+		super(SingleQuoting, self).__init__('SingleQuoting', pos, line)
+
+class DoubleQuoting(Quoting):
+	def __init__(self, pos, line):
+		super(DoubleQuoting, self).__init__('DoubleQuoting', pos, line)
 
 class Block:
 	def __init__(self, start, end, line, text):
@@ -114,9 +123,13 @@ class Preprocessor:
 			r'# (?P<line>[0-9]+)\s+"(?P<file>[^"]*)"(?P<flags>[^\n]*)\n',
 			None
 		),
-		regex.Regex('quote',
+		regex.Regex('double_quote',
 			r'"',
 			r'"',
+		),
+		regex.Regex('single_quote',
+			r'\'',
+			r'\''
 		),
 		regex.Regex('inline_comment',
 			r'//(?P<comment>[^\n]*)\n',
@@ -414,8 +427,8 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 				break
 
 			if self.verbose:
-				self.log('Found match of {} (line {}, bytes {} - {})'.format(
-					regex.name, self.source.lines[match.start()], match.start(), match.end()
+				self.log('Found match of {} (bytes {} - {})'.format(
+					regex.name, match.start(), match.end()
 				))
 				source = str(self.source)
 				left = source[match.start()-3:match.start()]
@@ -429,24 +442,47 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 
 			try:
 				replacement = regex.replacement
-				if len(self.blocks_stack) > 0 and isinstance(self.blocks_stack[-1], Quoting):
-					if regex.name == 'quote':
+				if len(self.blocks_stack) > 0 and isinstance(self.blocks_stack[-1], DoubleQuoting):
+					if regex.name == 'double_quote':
 						del self.blocks_stack[-1]
-						self.log('end-of-quote')
+						self.log('end-of-double_quote')
 						self.dump_stack()
 					else:
 						self.pos = match.start()+1
-						self.log('within quoting ({}), this match is ignored'.format(self.blocks_stack[-1]))
+						self.log('within double quoting ({}), this match is ignored'.format(self.blocks_stack[-1]))
+				elif len(self.blocks_stack) > 0 and isinstance(self.blocks_stack[-1], SingleQuoting):
+					if regex.name == 'single_quote':
+						escaped_quote = False
+						i = match.start()-1
+						while self.source[i] == '\\':
+							escaped_quote = not escaped_quote
+							i -= 1
+							if i < 0:
+								raise Exception('Reached start of file while looking into escapers sequence')
+
+						if not escaped_quote:
+							del self.blocks_stack[-1]
+							self.log('end-of-single-quote')
+							self.dump_stack()
+						else:
+							self.log('end-of-single-quote was escaped, ignored')
+					else:
+						self.pos = match.start()+1
+						self.log('within single quoting ({}), this match is ignored'.format(self.blocks_stack[-1]))
 				else:
 					if regex.name == 'hashline':
 						self.infile = match.group('file')
 						self.source_line = int(match.group('line'))
 						self.hashline_flags = [ int(i) for i in  match.group('flags').split() ]
-						self.hashline_flags = ' '.join([ str(i) for i in self.hashline_flags if i != 2])
+						self.hashline_flags = ' '+' '.join([ str(i) for i in self.hashline_flags if i in (3, 4)])
 					elif regex.name == 'inline_comment':
 						pass
-					elif regex.name == 'quote':
-						self.blocks_stack.append(Quoting(match.start(), self.source_line+1))
+					elif regex.name == 'double_quote':
+						self.blocks_stack.append(DoubleQuoting(match.start(), self.source_line+1))
+						self.dump_stack()
+						continue
+					elif regex.name == 'single_quote':
+						self.blocks_stack.append(SingleQuoting(match.start(), self.source_line+1))
 						self.dump_stack()
 						continue
 					elif regex.name == 'attr_ns_alias':
