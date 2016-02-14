@@ -297,7 +297,10 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			self.target.write(original)
 		else:
 			replacement = regex.regex.sub(replacement, original)
-			point_info = '(::Tial::Testing::Check::PointInfo{__FILE__, __LINE__, _caseName()})'
+			point_info = '(::Tial::Testing::Check::PointInfo{{"{file}", {line}, _caseName()}})'.format(
+				file=utils.escape_filename(str(self.infile), True),
+				line=self.source_line
+			)
 			if regex.post_process:
 				try:
 					replacement = replacement.format(point_info=point_info)
@@ -308,7 +311,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			self.target.write(replacement)
 			self.target.write('\n# {} "{}"{}\n'.format(
 				self.source_line,
-				str(self.infile).replace('\\', '\\\\'),
+				utils.escape_filename(str(self.infile), True),
 				self.hashline_flags
 			))
 		self.last_pos = self.pos

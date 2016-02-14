@@ -40,6 +40,9 @@ escape_comment = Escaper([
 	('*/', '* /')
 ])
 escape_expr = Escaper()
+escape_filename = Escaper([
+	('\\', '\\\\')
+])
 
 if __name__ == '__main__':
 	import unittest
