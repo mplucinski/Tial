@@ -111,7 +111,7 @@ class Preprocessor:
 
 	res = regex.RegexCollection([
 		regex.Regex('hashline',
-			r'# (?P<line>[0-9]+)\s+"(?P<file>[^"]*)"(\s+[0-9]+)?[^\n]*\n',
+			r'# (?P<line>[0-9]+)\s+"(?P<file>[^"]*)"(?P<flags>[^\n]*)\n',
 			None
 		),
 		regex.Regex('quote',
@@ -250,6 +250,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 
 		self.source = open(str(self.infile), 'rb').read().decode('utf-8')
 		self.source_line = 0
+		self.hashline_flags = ''
 
 		self.target = io.StringIO()
 
@@ -273,20 +274,6 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			begin = match.end()+1
 		return matches
 
-	hash_line = "#line"
-	re_whitespace = re.compile(r'\s+')
-	def parse_hash_line(self, pos):
-		end = self.source.find('\n', pos)
-		directive = self.source[pos:end+1]
-		assert directive.startswith(self.hash_line)
-		assert directive.endswith('\n')
-
-		directive = self.re_whitespace.split(directive)
-		assert len(directive) == 4
-		assert directive[0] == self.hash_line
-		assert directive[3] == ''
-		return (int(directive[1]), directive[2], end)
-
 	def re_replace(self, match, regex, replacement):
 		a = match.start()
 		b = match.end()
@@ -306,7 +293,11 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 					raise
 			self.source_line += self.source.count('\n', self.last_pos, b)
 			self.target.write(replacement)
-			self.target.write('\n#line {} "{}"\n'.format(self.source_line, str(self.infile).replace('\\', '\\\\')))
+			self.target.write('\n# {} "{}"{}\n'.format(
+				self.source_line,
+				str(self.infile).replace('\\', '\\\\'),
+				self.hashline_flags
+			))
 		self.last_pos = self.pos
 
 	def check_attr(self, attr, spec):
@@ -400,7 +391,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 				fn_output(self.source[last:i])
 				last = i
 				original_line = self.source.lines[i]
-				line_cmd = '\n#line {} "{}"\n'.format(original_line+1, str(self.infile).replace('\\', '\\\\'))
+				line_cmd = '\n# {} "{}"\n'.format(original_line+1, str(self.infile).replace('\\', '\\\\'))
 				fn_output(line_cmd)
 				line = original_line
 
@@ -450,6 +441,8 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 					if regex.name == 'hashline':
 						self.infile = match.group('file')
 						self.source_line = int(match.group('line'))
+						self.hashline_flags = [ int(i) for i in  match.group('flags').split() ]
+						self.hashline_flags = ' '.join([ str(i) for i in self.hashline_flags if i != 2])
 					elif regex.name == 'inline_comment':
 						pass
 					elif regex.name == 'quote':
