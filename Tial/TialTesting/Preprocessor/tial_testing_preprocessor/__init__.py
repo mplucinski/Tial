@@ -1,4 +1,7 @@
-# Copyright (c) 2015, Mariusz Plucinski
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2016, Mariusz Plucinski
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification, are permitted
@@ -19,16 +22,5 @@
 # DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-set(TialTestingPreprocessor "${CMAKE_CURRENT_SOURCE_DIR}/TialTestingPreprocessor.py" PARENT_SCOPE)
 
-find_package(PythonInterp 3.5)
-
-function(add_python_test MODULE_NAME)
-	add_test(NAME py-${MODULE_NAME}
-		COMMAND ${PYTHON_EXECUTABLE} ${MODULE_NAME}
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	)
-endfunction()
-
-add_python_test(tial_testing_preprocessor/regex.py)
-add_python_test(tial_testing_preprocessor/utils.py)
+from .preprocessor import Preprocessor

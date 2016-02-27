@@ -46,6 +46,11 @@ function(add_tial_test TARGET)
 			DEPENDS "${TialTestingPreprocessor}" "${SOURCE}"
 			COMMAND
 				${PYTHON_EXECUTABLE} ${TialTestingPreprocessor} "${SOURCE}" -o "${OUTPUT}"
+					--compiler "${CMAKE_CXX_COMPILER}"
+					--compiler-definitions \\\\$<JOIN:$<TARGET_PROPERTY:${TARGET},COMPILE_DEFINITIONS>,$<COMMA>>
+					--compiler-options \\\\$<JOIN:$<TARGET_PROPERTY:${TARGET},COMPILE_OPTIONS>,$<COMMA>>
+					--compiler-include-directories \\\\$<JOIN:$<TARGET_PROPERTY:${TARGET},INCLUDE_DIRECTORIES>,$<COMMA>>
+					--compiler-cxx-standard $<TARGET_PROPERTY:${TARGET},CXX_STANDARD>
 		)
 		list(APPEND PROCESSED_SOURCES "${OUTPUT}")
 	endforeach()
@@ -63,6 +68,15 @@ function(add_tial_test TARGET)
 		list(APPEND EXECUTABLE_ARGS PLIST ${INFO_PLIST})
 	endif()
 	add_tial_executable(${EXECUTABLE_ARGS})
+
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		foreach(SOURCE ${PROCESSED_SOURCES})
+			set_property(SOURCE ${SOURCE} APPEND
+				PROPERTY COMPILE_FLAGS "-fpreprocessed"
+			)
+		endforeach()
+	endif()
+
 	target_compile_definitions(${TARGET} PRIVATE TIAL_TESTING_NAME=${TARGET})
 	target_link_libraries(${TARGET} TialTesting ${ADD_TIAL_TEST_LIBRARIES})
 
