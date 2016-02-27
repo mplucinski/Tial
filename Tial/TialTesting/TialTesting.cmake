@@ -23,6 +23,8 @@ set(TIAL_TESTING_LIST_DIR "${CMAKE_CURRENT_LIST_DIR}")
 get_filename_component(TIAL_TESTING_LIST_DIR "${TIAL_TESTING_LIST_DIR}" ABSOLUTE)
 set(TIAL_TESTING_LIST_DIR "${CMAKE_CURRENT_LIST_DIR}" PARENT_SCOPE)
 
+find_package(PythonInterp 3.4 REQUIRED)
+
 function(add_tial_test TARGET)
 	set(OPTIONS BUNDLE)
 	set(ONE_VALUE_ARGS "")
@@ -43,7 +45,7 @@ function(add_tial_test TARGET)
 		add_custom_command(OUTPUT "${OUTPUT}"
 			DEPENDS "${TialTestingPreprocessor}" "${SOURCE}"
 			COMMAND
-				${TialTestingPreprocessor} "${SOURCE}" -o "${OUTPUT}"
+				${PYTHON_EXECUTABLE} ${TialTestingPreprocessor} "${SOURCE}" -o "${OUTPUT}"
 		)
 		list(APPEND PROCESSED_SOURCES "${OUTPUT}")
 	endforeach()
