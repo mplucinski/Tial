@@ -32,19 +32,22 @@ if(NOT DLT_SOURCE_DIR)
 	message(FATAL_ERROR "Could not find dtl directory (${DLT_SOURCE_DIR})")
 endif()
 
-add_tial_library(dtl
-	HEADERS
-		${DLT_SOURCE_DIR}/dtl/Diff.hpp
-		${DLT_SOURCE_DIR}/dtl/Diff3.hpp
-		${DLT_SOURCE_DIR}/dtl/dtl.hpp
-		${DLT_SOURCE_DIR}/dtl/functors.hpp
-		${DLT_SOURCE_DIR}/dtl/Lcs.hpp
-		${DLT_SOURCE_DIR}/dtl/Sequence.hpp
-		${DLT_SOURCE_DIR}/dtl/Ses.hpp
-		${DLT_SOURCE_DIR}/dtl/variables.hpp
+set(DTL_HEADERS
+	${DLT_SOURCE_DIR}/dtl/Diff.hpp
+	${DLT_SOURCE_DIR}/dtl/Diff3.hpp
+	${DLT_SOURCE_DIR}/dtl/dtl.hpp
+	${DLT_SOURCE_DIR}/dtl/functors.hpp
+	${DLT_SOURCE_DIR}/dtl/Lcs.hpp
+	${DLT_SOURCE_DIR}/dtl/Sequence.hpp
+	${DLT_SOURCE_DIR}/dtl/Ses.hpp
+	${DLT_SOURCE_DIR}/dtl/variables.hpp
 )
+add_tial_library(dtl HEADERS ${DTL_HEADERS})
 target_include_directories(dtl
 	INTERFACE "${DLT_SOURCE_DIR}"
+)
+install(FILES ${DTL_HEADERS}
+	DESTINATION "include/dtl"
 )
 
 add_tial_library(${PROJECT_NAME}
