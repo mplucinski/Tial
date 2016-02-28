@@ -221,6 +221,10 @@ static constexpr ::std::experimental::string_view _caseName() {
 			r'#(?P<directive>(el|end)?if(def)?)(?P<content>[^\n]*)\n',
 			r'#\g<directive>\g<content>'
 		),
+		regex.Regex('cpp',
+			r'#(?P<directive>[^\n]*)\n',
+			r'#\g<directive>'
+		),
 		regex.Regex('brace_open',
 			r'{',
 			None
@@ -662,6 +666,8 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 							raise Exception('Unknown preprocessor directive: {} (content: {})'.format(
 								match.group('directive'), match.group('content')
 							))
+					elif regex.name == 'cpp':
+						pass
 					else:
 						raise Exception('Unknown regex: '+regex.name)
 					self.re_replace(match, regex, replacement)
