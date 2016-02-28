@@ -29,7 +29,11 @@ import subprocess
 import sys
 import tempfile
 
-import tial_testing_preprocessor as preprocessor
+try:
+	import tial_testing_preprocessor as preprocessor
+except ImportError:
+	sys.path.append(str(pathlib.Path.cwd()/'..'/'share'/'TialTesting'))
+	import tial_testing_preprocessor as preprocessor
 
 def progress(verbose, message):
 	if verbose:

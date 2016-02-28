@@ -19,7 +19,18 @@
 # DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-set(TialTestingPreprocessor "${CMAKE_CURRENT_SOURCE_DIR}/TialTestingPreprocessor.py" PARENT_SCOPE)
+set(TialTestingPreprocessor "${CMAKE_CURRENT_SOURCE_DIR}/TialTestingPreprocessor.py")
+set(TialTestingPreprocessor "${TialTestingPreprocessor}" PARENT_SCOPE)
+
+install(PROGRAMS "${TialTestingPreprocessor}" DESTINATION bin)
+install(FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/tial_testing_preprocessor/__init__.py
+		${CMAKE_CURRENT_SOURCE_DIR}/tial_testing_preprocessor/preprocessor.py
+		${CMAKE_CURRENT_SOURCE_DIR}/tial_testing_preprocessor/regex.py
+		${CMAKE_CURRENT_SOURCE_DIR}/tial_testing_preprocessor/utils.py
+	DESTINATION
+		"share/${PROJECT_NAME}/tial_testing_preprocessor"
+)
 
 find_package(PythonInterp 3.5)
 

@@ -22,9 +22,6 @@
 set(UPPER_PROJECT_VERSION "${PROJECT_VERSION}")
 project(TialTesting VERSION "${UPPER_PROJECT_VERSION}")
 
-add_subdirectory(Preprocessor)
-set(TialTestingPreprocessor "${TialTestingPreprocessor}" PARENT_SCOPE)
-
 include(TialTesting.cmake)
 
 find_path(DLT_SOURCE_DIR dtl/dtl.hpp
@@ -72,7 +69,6 @@ add_tial_library(${PROJECT_NAME}
 	CMAKE_SOURCES
 		TialTesting.cmake
 )
-install(PROGRAMS "${TialTestingPreprocessor}" DESTINATION bin)
 target_include_directories(${PROJECT_NAME} SYSTEM
 	PRIVATE ${Boost_INCLUDE_DIRS}
 )
@@ -82,6 +78,9 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
 	PUBLIC TialUtility dtl
 )
+
+add_subdirectory(Preprocessor)
+set(TialTestingPreprocessor "${TialTestingPreprocessor}" PARENT_SCOPE)
 
 add_tial_test(Test${PROJECT_NAME}
 	SOURCES tests/Testing.cpp
