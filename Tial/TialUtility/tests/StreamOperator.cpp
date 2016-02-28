@@ -60,22 +60,34 @@ public:
 	struct Data {
 		std::unordered_map<std::string, std::string> input;
 		std::unordered_set<std::string> results;
+
+//FIXME: workaround for compiler's crash in Clang/C2
+#if (BOOST_COMP_CLANG && BOOST_OS_WINDOWS)
+		Data(const decltype(Data::input) &input, const decltype(Data::results) &results)
+			: input(input), results(results) {}
+#endif
 	};
 
+//FIXME: workaround for compiler's crash in Clang/C2
+#if (BOOST_COMP_CLANG && BOOST_OS_WINDOWS)
+#define DATA(...) Data(__VA_ARGS__)  
+#else
+#define DATA(...) Data{__VA_ARGS__}
+#endif
 	[[Testing::Data]] void data() {
-		[[Testing::Data("no elements")]] Data{
+		[[Testing::Data("no elements")]] DATA(
 				{},
 				{""}
-		};
-		[[Testing::Data("one elements")]] Data{
+		);
+		[[Testing::Data("one elements")]] DATA(
 				{{"Great Britain", "London"}},
 				{"Great Britain: London"}
-		};
-		[[Testing::Data("two elements")]] Data{
+		);
+		[[Testing::Data("two elements")]] DATA(
 				{{"Great Britain", "London"}, {"Germany", "Berlin"}},
 				{"Great Britain: London, Germany: Berlin", "Germany: Berlin, Great Britain: London"}
-		};
-		[[Testing::Data("three elements")]] Data{
+		);
+		[[Testing::Data("three elements")]] DATA(
 				{{"Great Britain", "London"}, {"Germany", "Berlin"}, {"France", "Paris"}},
 				{
 					"Great Britain: London, Germany: Berlin, France: Paris",
@@ -85,8 +97,9 @@ public:
 					"France: Paris, Germany: Berlin, Great Britain: London",
 					"France: Paris, Great Britain: London, Germany: Berlin"
 				}
-		};
+		);
 	}
+#undef DATA
 
 	void operator()(const Data &data) {
 		std::ostringstream oss;
