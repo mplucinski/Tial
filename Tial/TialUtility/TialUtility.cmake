@@ -44,6 +44,8 @@ function(tial_set_common_settings)
 	set(CMAKE_INCLUDE_CURRENT_DIR ON PARENT_SCOPE)
 	set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON PARENT_SCOPE)
 
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" PARENT_SCOPE)
+
 	# Compiler-specific settings
 	if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} APPEND PROPERTY COMPILE_OPTIONS "-pedantic")
@@ -59,9 +61,6 @@ function(tial_set_common_settings)
 	endif()
 
 	# System-specific settings
-	if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-		set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" PARENT_SCOPE)
-	endif()
 
 	# Build configuration
 	set(TIAL_UTILITY_LOGGER_DEFAULT_COMPILE_LEVEL 25)
