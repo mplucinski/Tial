@@ -204,6 +204,9 @@ set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_LIBRARIES ${add_tial_libra
 			set(HEADER "${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}")
 		endif()
 		target_sources(${TARGET} ${PUBLIC} ${HEADER})
+		if("${PUBLIC}" STREQUAL "PUBLIC")
+			set_property(TARGET ${TARGET} APPEND PROPERTY PUBLIC_HEADER "${HEADER}")
+		endif()
 	endforeach()
 
 	target_link_libraries(${TARGET} ${PUBLIC} ${CMAKE_THREAD_LIBS_INIT} ${add_tial_library_LIBRARIES})
