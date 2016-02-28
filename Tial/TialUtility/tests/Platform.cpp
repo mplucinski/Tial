@@ -45,15 +45,12 @@ public:
 	[[Testing::Data]] void data() {
 		[[Testing::Data("empty")]] Data{L"", ""};
 		[[Testing::Data("7 bit only")]] Data{L"Alan", "Alan"};
-		[[Testing::Data("unicode")]] Data{{0xC3, 0x9F}, u8"\u00DF"};
+		[[Testing::Data("unicode")]] Data{L"abc\U00010437", u8"abc\U00010437"};
 	}
 
 	void operator()(const Data &data) {
-		(void)data;
-#if 0 //test failure on Windows
 		[[Check::Verify]] (wideStringUTF8Cast<char, wchar_t>(data.wstring)) == data.string;
 		[[Check::Verify]] (wideStringUTF8Cast<wchar_t, char>(data.string)) == data.wstring;
-#endif
 	}
 };
 
