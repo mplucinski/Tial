@@ -39,11 +39,13 @@
 #include <Dbghelp.h>
 #endif
 
+#define TIAL_MODULE "Tial::Utility::ABI"
+
 std::string Tial::Utility::ABI::demangle(const std::string &name) {
 	return boost::core::demangle(name.c_str());
 }
 
-void Tial::Utility::ABI::currentStackTrace(std::function<void(const std::string&)> fn, unsigned int skipLevels) {
+void Tial::Utility::ABI::currentStackTrace(std::function<void(const std::string&)> fn, unsigned int skipLevels) noexcept {
 #if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	void *buffer[256];
 	int count = backtrace(buffer, sizeof(buffer));
@@ -110,18 +112,19 @@ void Tial::Utility::ABI::currentStackTrace(std::function<void(const std::string&
 	}
 
 	const size_t nameSize = 256;
-	const size_t symbolInfoSize = sizeof(SYMBOL_INFOW) + (nameSize+1)*sizeof(char);
+	const size_t symbolInfoSize = sizeof(SYMBOL_INFOW) + (nameSize+1)*sizeof(wchar_t);
 	std::unique_ptr<SYMBOL_INFOW, std::function<void(SYMBOL_INFOW*)>> info{
 		reinterpret_cast<SYMBOL_INFOW*>(new char[symbolInfoSize]),
 		[](SYMBOL_INFOW *info) {
 			delete[] reinterpret_cast<char*>(info);
 		}
 	};
-	memset(info.get(), 0, symbolInfoSize);
-	info->MaxNameLen = nameSize;
-	info->SizeOfStruct = sizeof(SYMBOL_INFOW);
 
-	for(unsigned int i = 0; i < count; ++i) {
+    memset(info.get(), 0, symbolInfoSize);
+    info->MaxNameLen = nameSize;
+    info->SizeOfStruct = sizeof(SYMBOL_INFOW);
+
+    for(unsigned int i = 0; i < count; ++i) {
 		if(!SymFromAddrW(process, reinterpret_cast<DWORD64>(backTrace[i]), 0, info.get())) {
 			auto error = GetLastError();
 			fn("<failed SymFromAddrW: "+std::to_string(error)+">");
@@ -133,14 +136,14 @@ void Tial::Utility::ABI::currentStackTrace(std::function<void(const std::string&
 #endif
 }
 
-std::type_index Tial::Utility::ABI::currentExceptionType() {
+std::type_index Tial::Utility::ABI::currentExceptionType() noexcept {
 #if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	std::type_info *info = abi::__cxa_current_exception_type();
 	if(!info)
 		return typeid(void);
 	return *info;
 #elif BOOST_OS_WINDOWS
-	fprintf(stderr, "currentExceptionType is not available on this platform\n");
+	LOGW << "currentExceptionType is not available on this platform";
 	return typeid(void);
 #else
 #error "Platform not supported"

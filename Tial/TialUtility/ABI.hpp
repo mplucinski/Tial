@@ -34,8 +34,8 @@ namespace Utility {
 namespace ABI {
 
 TIALUTILITY_EXPORT std::string demangle(const std::string &name);
-TIALUTILITY_EXPORT std::type_index currentExceptionType();
-TIALUTILITY_EXPORT void currentStackTrace(std::function<void(const std::string&)>, unsigned int skipLevels = 0);
+TIALUTILITY_EXPORT std::type_index currentExceptionType() noexcept;
+TIALUTILITY_EXPORT void currentStackTrace(std::function<void(const std::string&)>, unsigned int skipLevels = 0) noexcept;
 
 }
 }
