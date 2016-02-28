@@ -285,7 +285,8 @@ static std::string printLevel(Tial::Utility::Logger::Level level, bool adjustSpa
 #define ColorBrightWhite   "\x1B[37;1m"
 
 static std::string levelColorCode(Tial::Utility::Logger::Level level) {
-	switch(level) {
+#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
+    switch(level) {
 	case Tial::Utility::Logger::Level::Critical: return ColorRed;
 	case Tial::Utility::Logger::Level::Warning:  return ColorYellow;
 	case Tial::Utility::Logger::Level::Info:     return ColorGreen;
@@ -295,10 +296,18 @@ static std::string levelColorCode(Tial::Utility::Logger::Level level) {
 	case Tial::Utility::Logger::Level::Nice3:    return ColorBrightBlack;
 	default: return ColorReset; break;
 	}
+#else
+    (void)level;
+    return "";
+#endif
 }
 
 static std::string colorCodeReset() {
+#if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	return ColorReset;
+#else
+    return "";
+#endif
 }
 
 void Tial::Utility::Logger::Handlers::StandardOutput::write(const Message &message) {
