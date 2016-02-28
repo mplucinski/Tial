@@ -69,14 +69,6 @@ function(add_tial_test TARGET)
 	endif()
 	add_tial_executable(${EXECUTABLE_ARGS})
 
-	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		foreach(SOURCE ${PROCESSED_SOURCES})
-			set_property(SOURCE ${SOURCE} APPEND
-				PROPERTY COMPILE_FLAGS "-fpreprocessed"
-			)
-		endforeach()
-	endif()
-
 	target_compile_definitions(${TARGET} PRIVATE TIAL_TESTING_NAME=${TARGET})
 	target_link_libraries(${TARGET} TialTesting ${ADD_TIAL_TEST_LIBRARIES})
 
