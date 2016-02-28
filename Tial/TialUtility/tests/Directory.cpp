@@ -23,6 +23,10 @@
 #include <TialTesting/TialTesting.hpp>
 #include <TialUtility/TialUtility.hpp>
 
+#define TIAL_MODULE "Test/Tial::Utility::Directory"
+
+const std::string sample = "TestTialUtility_sample";
+
 [[Tial::Testing::Typedef]] namespace Testing = Tial::Testing;
 [[Tial::Testing::Typedef]] namespace Check = Tial::Testing::Check;
 
@@ -31,8 +35,19 @@ namespace [[Testing::Suite]] Utility {
 
 class [[Testing::Case]] IterateDirectoryContent {
 	void operator()() {
-		Tial::Utility::NativeDirectory directory = Tial::Utility::NativeDirectory::current()/"sample";
+		Tial::Utility::NativeDirectory directory = Tial::Utility::NativeDirectory::current();
+		bool found = false;
+		do {
+			LOGD << "Looking for \"" << sample << "\" in \"" << directory.path() << "\"";
+			for(const auto child: directory.content())
+				if(child->path().basename() == sample) {
+					found = true;
+					directory = directory.path()/sample;
+				}
 
+			if(!found)
+				directory = directory.path().parent();
+		} while(!found);
 		auto content = directory.content();
 
 		Tial::Utility::NativeDirectory::Entries entries;

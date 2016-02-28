@@ -97,5 +97,5 @@ add_tial_test(Test${PROJECT_NAME}
 )
 add_custom_command(TARGET Test${PROJECT_NAME}
 	COMMAND ${CMAKE_COMMAND} -E
-		"copy_directory" "${CMAKE_CURRENT_SOURCE_DIR}/tests/sample" "${CMAKE_CURRENT_BINARY_DIR}/sample"
+		"copy_directory" "${CMAKE_CURRENT_SOURCE_DIR}/tests/sample" "$<TARGET_PROPERTY:Test${PROJECT_NAME},RUNTIME_OUTPUT_DIRECTORY>/Test${PROJECT_NAME}_sample"
 )

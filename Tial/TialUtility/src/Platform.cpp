@@ -22,16 +22,23 @@
  */
 #include "Platform.hpp"
 
+#include "Exception.hpp"
+
 #include <vector>
 #include <system_error>
 
 #if BOOST_OS_WINDOWS
 #define WINVER 0x0600
 #include <Windows.h>
+#endif
+
+#define TIAL_MODULE "Tial::Utility::Platform"
+
+#if BOOST_OS_WINDOWS
 
 void Tial::Utility::Platform::Win32::throwLastError() {
 	auto error = GetLastError();
-	throw std::system_error(error, std::system_category());
+	THROW std::system_error(error, std::system_category());
 }
 
 namespace {

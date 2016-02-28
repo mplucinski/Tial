@@ -21,6 +21,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "Directory.hpp"
+#include "Exception.hpp"
 #include "Platform.hpp"
 
 #include <algorithm>
@@ -37,6 +38,8 @@
 
 #include <boost/predef.h>
 
+#define TIAL_MODULE "Tial::Utility::Directory"
+
 Tial::Utility::NativePath Tial::Utility:: _currentPath() {
 #if (BOOST_OS_UNIX || BOOST_OS_MACOS)
 	std::unique_ptr<char, std::function<void(char*)>> rawPath(
@@ -46,7 +49,7 @@ Tial::Utility::NativePath Tial::Utility:: _currentPath() {
 		}
 	);
 	if(!rawPath)
-		throw std::system_error(errno, std::system_category());
+		THROW std::system_error(errno, std::system_category());
 
 	return std::string(rawPath.get());
 #elif BOOST_OS_WINDOWS
@@ -56,8 +59,11 @@ Tial::Utility::NativePath Tial::Utility:: _currentPath() {
 	directory.resize(size);
 
 	size = GetCurrentDirectoryW(directory.size(), directory.data());
-	if(size != directory.size())
+	if(size == 0 || size+1 != directory.size()) {
+		LOGW << "Too less bytes for current directory: " << directory.size()
+			<< ", needed " << size;
 		Platform::Win32::throwLastError();
+	}
 
 	return Platform::Win32::wideStringUTF8Cast<char, wchar_t>(directory.data());
 #else
@@ -78,7 +84,7 @@ std::vector<std::shared_ptr<Tial::Utility::_DirectoryEntry<
 		}
 	);
 	if(!directory)
-		throw std::system_error(errno, std::system_category());
+		THROW std::system_error(errno, std::system_category());
 
 	struct dirent *entry;
 	while((entry = readdir(directory.get()))) {
