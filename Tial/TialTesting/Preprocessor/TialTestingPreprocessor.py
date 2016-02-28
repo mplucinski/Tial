@@ -61,7 +61,7 @@ def main():
 	parser.add_argument('-o', '--output', required=True, nargs=1, help='Output file')
 	parser.add_argument('-v', '--verbose', action='store_true', help='Show some internal processing information')
 	parser.add_argument('--disable-line', action='store_true', help='Do not produce #line directives in output file')
-	parser.add_argument('--disable-cpp', action='store_true', help='Do not run CPP before processing input file')
+	parser.add_argument('--enable-cpp', action='store_true', help='Run CPP before processing input file')
 	parser.add_argument('--compiler', nargs=1, help='Compiler binary that is used for building')
 	parser.add_argument('--compiler-definitions', nargs=1, help='Compiler definitions')
 	parser.add_argument('--compiler-options', nargs=1, help='Compiler options')
@@ -72,7 +72,7 @@ def main():
 	verbose = args.verbose
 	infile = pathlib.Path(args.input[0])
 
-	if not args.disable_cpp:
+	if args.enable_cpp:
 		compiler = pathlib.Path(args.compiler[0])
 		compiler_definitions = args.compiler_definitions[0]
 		compiler_options = args.compiler_options[0]

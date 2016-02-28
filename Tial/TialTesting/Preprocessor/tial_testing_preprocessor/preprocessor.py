@@ -26,6 +26,7 @@
 from . import regex
 from . import utils
 
+import copy
 import io
 import re
 import string
@@ -71,12 +72,52 @@ class Block:
 	def __repr__(self):
 		return '<Block "{}" ({})>'.format(self.text, self.line)
 
+class CppBlock:
+	class SubBlock:
+		def __init__(self, directive, content):
+			self.directive = directive
+			self.content = content
+
+		def generate(self):
+			return '#{}{}'.format(self.directive, self.content)
+
+	class If(SubBlock):
+		def __init__(self, content):
+			super(CppBlock.If, self).__init__('if', content)
+
+	class Elif(SubBlock):
+		def __init__(self, content):
+			super(CppBlock.Elif, self).__init__('elif', content)
+
+	def __init__(self):
+		self.sub_blocks = []
+
+	def append(self, sub_block):
+		self.sub_blocks.append(sub_block)
+
+	def generate(self):
+		return '\n'.join([i.generate() for i in self.sub_blocks])
+
+	def generate_end(self):
+		return '#endif'
+
+	def __repr__(self):
+		return '<CppBlock #{}.{}>'.format(self.directive, self.content)
+
+class CppBlockStack(list):
+	def generate(self):
+		return '\n'.join([i.generate() for i in self]) + '\n'
+
+	def generate_end(self):
+		return '\n'.join([i.generate_end() for i in self]) + '\n'
+
 class Case:
-	def __init__(self, name, full_name, base):
+	def __init__(self, name, full_name, base, cpp_blocks_stack):
 		self.name = name
 		self.full_name = full_name
 		self.has_data = None
 		self.base = base
+		self.cpp_blocks_stack = copy.deepcopy(cpp_blocks_stack)
 
 	def __repr__(self):
 		return '<Case "{}">'.format(self.full_name)
@@ -103,6 +144,14 @@ constexpr ::std::experimental::string_view '''+self.name+'''::_name
 '''
 
 		return replacement
+
+	def generate_registration(self):
+		return (
+			self.cpp_blocks_stack.generate()
+			+ self.full_name
+			+ '\n'
+			+ self.cpp_blocks_stack.generate_end()
+		)
 
 class Preprocessor:
 	attr_typedef = 'Tial::Testing::Typedef'
@@ -135,6 +184,10 @@ class Preprocessor:
 			r'//(?P<comment>[^\n]*)\n',
 			r'/* \g<comment> */'
 		),
+		regex.Regex('block_comment',
+			r'/\*(?P<comment>.*?)\*/',
+			lambda match: r'/* ' + ' */\n/* '.join(match.group('comment').split('\n')) + ' */'
+		),
 		regex.Regex('attr_ns_alias',
 			r'\[\[\s*'+attr_typedef+'\s*\]\]\s*namespace\s+(?P<alias>\S+)\s*=\s*(?P<original>\S+)\s*;',
 			r'/* '+attr_typedef+' */ namespace \g<alias> = \g<original>;'
@@ -163,6 +216,10 @@ static constexpr ::std::experimental::string_view _caseName() {
 	return Case::_name;
 }
 '''
+		),
+		regex.Regex('cpp_if',
+			r'#(?P<directive>(el|end)?if(def)?)(?P<content>[^\n]*)\n',
+			r'#\g<directive>\g<content>'
 		),
 		regex.Regex('brace_open',
 			r'{',
@@ -262,7 +319,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			self.oufile.parent.mkdir(parents=True)
 
 		self.source = open(str(self.infile), 'rb').read().decode('utf-8')
-		self.source_line = 0
+		self.source_line = 1
 		self.hashline_flags = ''
 
 		self.target = io.StringIO()
@@ -270,7 +327,9 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		self.aliases = {}
 		self.suites = []
 		self.blocks_stack = []
+		self.cpp_blocks_stack = CppBlockStack()
 		self.line_no_cache = [1]
+		self.last_line_directive = 1
 
 	def log(self, message):
 		if self.verbose:
@@ -287,34 +346,72 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			begin = match.end()+1
 		return matches
 
+	def write_line_directive(self):
+		self.target.write('#line {} "{}"\n'.format(
+			self.source_line,
+			utils.escape_filename(str(self.infile), True)
+		))
+
+	def write_prefixed_line(self, line):
+		if len(line) != 0:
+			self.target.write('{}\n'.format(line))
+
+	def write_prefixed(self, string, increment_source_line):
+		self.write_line_directive()
+		line = ''
+		for i in range(len(string)):
+			ch = string[i]
+			if ch == '\n':
+				self.write_prefixed_line(line)
+				if increment_source_line:
+					if len(line) == 0:
+						self.write_prefixed_line('/* */')
+					self.source_line += 1
+				line = ''
+			else:
+				line += ch
+		self.write_prefixed_line(line)
+
+	def write_original(self, original):
+		self.write_prefixed(original, True)
+
+	def write_replacement(self, replacement, original):
+		self.write_prefixed(replacement, False)
+		self.source_line += original.count('\n')
+
 	def re_replace(self, match, regex, replacement):
-		a = match.start()
-		b = match.end()
-		assert b == self.pos
-		original = self.source[a:b]
-		self.target.write(self.source[self.last_pos:a])
-		if replacement is None:
-			self.target.write(original)
-		else:
-			replacement = regex.regex.sub(replacement, original)
-			point_info = '(::Tial::Testing::Check::PointInfo{{"{file}", {line}, _caseName()}})'.format(
-				file=utils.escape_filename(str(self.infile), True),
-				line=self.source_line
-			)
-			if regex.post_process:
-				try:
-					replacement = replacement.format(point_info=point_info)
-				except:
-					sys.stderr.write('Replacement: "{}"\n'.format(replacement))
-					raise
-			self.source_line += self.source.count('\n', self.last_pos, b)
-			self.target.write(replacement)
-			self.target.write('\n# {} "{}"{}\n'.format(
-				self.source_line,
-				utils.escape_filename(str(self.infile), True),
-				self.hashline_flags
-			))
-		self.last_pos = self.pos
+		try:
+			a = match.start()
+			b = match.end()
+			assert b == self.pos
+			original = self.source[a:b]
+			self.write_original(self.source[self.last_pos:a])
+
+			if replacement is None:
+				self.write_original(original)
+			else:
+				replacement = regex.regex.sub(replacement, original)
+				#self.source_line += self.source.count('\n', self.last_pos, b)
+				point_info = '(::Tial::Testing::Check::PointInfo{{"{file}", {line}, _caseName()}})'.format(
+					file=utils.escape_filename(str(self.infile), True),
+					line=self.source_line
+				)
+				if regex.post_process:
+					try:
+						replacement = replacement.format(point_info=point_info)
+					except:
+						sys.stderr.write('Replacement: "{}"\n'.format(replacement))
+						raise
+				self.write_replacement(replacement, original)
+#				self.target.write('# {} "{}"{}\n'.format(
+#					self.source_line,
+#					utils.escape_filename(str(self.infile), True),
+#					self.hashline_flags
+#				))
+			self.last_pos = self.pos
+		except:
+			sys.stderr.write('last_pos = {}, a = {}, b = {}'.format(self.last_pos, a, b))
+			raise
 
 	def check_attr(self, attr, spec):
 		attr = attr.split('::')
@@ -480,6 +577,8 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 						self.hashline_flags = ' '+' '.join([ str(i) for i in self.hashline_flags if i in (3, 4)])
 					elif regex.name == 'inline_comment':
 						pass
+					elif regex.name == 'block_comment':
+						pass
 					elif regex.name == 'double_quote':
 						self.blocks_stack.append(DoubleQuoting(match.start(), self.source_line+1))
 						self.dump_stack()
@@ -502,7 +601,12 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 						if (self.check_attr(match.group('attr'), self.attr_case) or
 								self.check_attr(match.group('attr'), self.attr_casebase)
 							):
-							case = Case(match.group('cl_name'), self.full_name(match.group('cl_name')), regex.name == 'attr_clb')
+							case = Case(
+								match.group('cl_name'),
+								self.full_name(match.group('cl_name')),
+								regex.name == 'attr_clb',
+								self.cpp_blocks_stack
+							)
 							if not case.base:
 								assert isinstance(self.blocks_stack[-1], Suite)
 								self.blocks_stack[-1].cases.append(case)
@@ -544,6 +648,20 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 							replacement = self.blocks_stack[-1].close_block(regex.replacement)
 						del self.blocks_stack[-1]
 						self.dump_stack()
+					elif regex.name == 'cpp_if':
+						directive = match.group('directive')
+						content = match.group('content')
+						if directive == 'if':
+							self.cpp_blocks_stack.append(CppBlock())
+							self.cpp_blocks_stack[-1].append(CppBlock.If(content))
+						elif directive == 'elif':
+							self.cpp_blocks_stack[-1].append(CppBlock.Elif(content))
+						elif directive == 'endif':
+							self.cpp_blocks_stack.pop()
+						else:
+							raise Exception('Unknown preprocessor directive: {} (content: {})'.format(
+								match.group('directive'), match.group('content')
+							))
 					else:
 						raise Exception('Unknown regex: '+regex.name)
 					self.re_replace(match, regex, replacement)
@@ -561,7 +679,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		for suite in self.suites:
 			self.target.write('::Tial::Testing::Suite<\n')
 			if len(suite.cases) > 0:
-				self.target.write('\t' + ',\n\t'.join([ case.full_name for case in suite.cases ]) + '\n')
+				self.target.write('\t' + ',\n\t'.join([ case.generate_registration() for case in suite.cases ]) + '\n')
 			self.target.write('> __testSuite_{name_raw}("{name}");\n'.format(
 				name=suite.full_name, name_raw=suite.full_name.replace('::', '__')
 			))
