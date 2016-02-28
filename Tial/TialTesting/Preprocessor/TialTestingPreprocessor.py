@@ -32,7 +32,7 @@ import tempfile
 try:
 	import tial_testing_preprocessor as preprocessor
 except ImportError:
-	sys.path.append(str(pathlib.Path.cwd()/'..'/'share'/'TialTesting'))
+	sys.path.append(str(pathlib.Path(__file__).parent.parent/'share'/'TialTesting'))
 	import tial_testing_preprocessor as preprocessor
 
 def progress(verbose, message):
