@@ -97,7 +97,7 @@ public:
 typedef std::function<void(const Exception &)> ThrowHook;
 TIALUTILITY_EXPORT void installExceptionThrowHook(const ThrowHook &hook);
 
-TIALUTILITY_EXPORT void _triggerThrowHooks(const Exception &exception, const bool log);
+TIALUTILITY_EXPORT void _triggerThrowHooks(const Exception &exception, const bool log) noexcept;
 
 class TIALUTILITY_EXPORT ThrowHookTrigger {
 	bool log = false;

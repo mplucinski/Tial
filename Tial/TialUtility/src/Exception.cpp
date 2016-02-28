@@ -97,18 +97,25 @@ void Tial::Utility::installExceptionThrowHook(const ThrowHook &hook) {
 	throwHooks.push_back(hook);
 }
 
-void Tial::Utility::_triggerThrowHooks(const Exception &exception, const bool log) {
-	TIAL_UTILITY_LOGGER_LOG(log ? Logger::Level::Warning : Logger::Level::Nice3) << "Exception: " << exception.message();
-	TIAL_UTILITY_LOGGER_LOG(log ? Logger::Level::Warning : Logger::Level::Nice3) << exception.file() << ":"
-			<< exception.line() << " " << exception.module() << " " << exception.function() << " " << exception.message();
-	std::vector <std::string> st;
-	LOGN3 << "Stack trace:\n" << (
-			ABI::currentStackTrace([&st](const std::string &s) { st.push_back(s); }),
-			boost::algorithm::join(st, "\n")
-	);
+void Tial::Utility::_triggerThrowHooks(const Exception &exception, const bool log) noexcept {
+    try {
+    	TIAL_UTILITY_LOGGER_LOG(log ? Logger::Level::Warning : Logger::Level::Nice3) << "Exception: " << exception.message();
+	    TIAL_UTILITY_LOGGER_LOG(log ? Logger::Level::Warning : Logger::Level::Nice3) << exception.file() << ":"
+		    	<< exception.line() << " " << exception.module() << " " << exception.function() << " " << exception.message();
 
-	for(auto &hook: throwHooks)
-		hook(exception);
+	    std::vector <std::string> st;
+    	LOGN3 << "Stack trace:\n" << (
+            ABI::currentStackTrace([&st](const std::string &s) { st.push_back(s); }),
+            boost::algorithm::join(st, "\n")
+	    );
+
+        for(auto &hook: throwHooks)
+		    hook(exception);
+    } catch (const std::exception &e) {
+        LOGC << "Error while processing throw hooks: " << e.what();
+    } catch (...) {
+        LOGC << "Error while processing throw hooks: unknown";
+    }
 }
 
 Tial::Utility::ThrowHookTrigger::ThrowHookTrigger(const bool log): log(log) {}
