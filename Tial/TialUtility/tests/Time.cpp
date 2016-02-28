@@ -56,12 +56,14 @@ class [[Testing::Case]] TimeCast {
 		tt.tm_isdst = -1;
 
 		// with UTC
-		auto t = std::chrono::system_clock::from_time_t(timegm(&tt));
+		auto tt_utc = tt;
+		auto t = std::chrono::system_clock::from_time_t(timegm(&tt_utc));
 		t += std::chrono::microseconds(dt.microsecond);
 		[[Check::Verify]] Tial::Utility::Time::timeCast(t, Tial::Utility::Time::Zone::UTC) == expected;
 
 		// with local tz
-		t = std::chrono::system_clock::from_time_t(timelocal(&tt));
+		auto tt_local = tt;
+		t = std::chrono::system_clock::from_time_t(timelocal(&tt_local));
 		t += std::chrono::microseconds(dt.microsecond);
 		[[Check::Verify]] Tial::Utility::Time::timeCast(t, Tial::Utility::Time::Zone::Local) == expected;
 	}
@@ -82,6 +84,7 @@ class [[Testing::Case]] TimeCast {
 		testTimeCastToString({1971,  1,  2,  0,  0,  0,      0}, "1971-01-02T00:00:00.000000");
 		testTimeCastToString({1971,  1, 10,  0,  0,  0,      0}, "1971-01-10T00:00:00.000000");
 		testTimeCastToString({1971,  2,  1,  0,  0,  0,      0}, "1971-02-01T00:00:00.000000");
+		testTimeCastToString({1971,  6,  1,  0,  0,  0,      0}, "1971-06-01T00:00:00.000000");
 		testTimeCastToString({1971, 10,  1,  0,  0,  0,      0}, "1971-10-01T00:00:00.000000");
 		testTimeCastToString({1972,  1,  1,  0,  0,  0,      0}, "1972-01-01T00:00:00.000000");
 		testTimeCastToString({2015,  1,  1,  0,  0,  0,      0}, "2015-01-01T00:00:00.000000");
