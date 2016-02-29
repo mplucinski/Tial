@@ -30,7 +30,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_SYSTEM_NAME STREQUAL "Window
 	find_package(TialUtilityStdCompat REQUIRED)
 	get_property(INCLUDE_DIR TARGET TialUtilityStdCompat
 		PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-	target_include_directories(TialUtility PUBLIC
-		"${INCLUDE_DIR}/TialUtilityStdCompat/compat")
-	target_link_libraries(TialUtility PUBLIC TialUtilityStdCompat)
+	set_property(TARGET TialUtility APPEND
+		PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${INCLUDE_DIR}/TialUtilityStdCompat/compat")
+	set_property(TARGET TialUtility APPEND
+		PROPERTY INTERFACE_LINK_LIBRARIES TialUtilityStdCompat)
 endif()
