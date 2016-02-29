@@ -187,6 +187,9 @@ set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_LIBRARIES ${add_tial_libra
 		)
 		target_sources(${TARGET} PUBLIC ${EXPORT_HEADER})
 		set_property(TARGET ${TARGET} APPEND PROPERTY PUBLIC_HEADER "${EXPORT_HEADER}")
+		install(FILES "${EXPORT_HEADER}"
+				DESTINATION "include/${TARGET}"
+		)
 
 		set_property(TARGET ${TARGET} PROPERTY RESOURCE ${add_tial_library_RESOURCES})
 
