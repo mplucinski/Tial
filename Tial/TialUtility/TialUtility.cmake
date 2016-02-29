@@ -201,11 +201,16 @@ set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_LIBRARIES ${add_tial_libra
 	endif()
 
 	foreach(HEADER ${add_tial_library_HEADERS})
+		set(HEADER_DIRECTORY "")
 		if(NOT IS_ABSOLUTE "${HEADER}")
+			get_filename_component(HEADER_DIRECTORY "${HEADER}" DIRECTORY)
 			set(HEADER "${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}")
 		endif()
 		target_sources(${TARGET} ${PUBLIC} ${HEADER})
 		if("${PUBLIC}" STREQUAL "PUBLIC")
+			install(FILES "${HEADER}"
+				DESTINATION "include/${TARGET}/${HEADER_DIRECTORY}"
+			)
 			set_property(TARGET ${TARGET} APPEND PROPERTY PUBLIC_HEADER "${HEADER}")
 		endif()
 	endforeach()
@@ -216,7 +221,6 @@ set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_LIBRARIES ${add_tial_libra
 			ARCHIVE DESTINATION lib
 			LIBRARY DESTINATION lib
 			FRAMEWORK DESTINATION "."
-			PUBLIC_HEADER DESTINATION "include/${TARGET}"
 			RESOURCE DESTINATION "share/${TARGET}"
 	)
 	install(FILES ${add_tial_library_CMAKE_SOURCES}
