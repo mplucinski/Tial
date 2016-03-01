@@ -73,7 +73,9 @@ TIALUTILITY_EXPORT Stream &operator<<(Stream &s, const void *ptr);
 TIALUTILITY_EXPORT Stream &operator<<(Stream &s, bool value);
 TIALUTILITY_EXPORT Stream &operator<<(Stream &s, const std::type_info &info);
 TIALUTILITY_EXPORT Stream &operator<<(Stream &s, const std::type_index &index);
+#if !BOOST_OS_WINDOWS // on Windows, seekdir is a typedef of integer
 TIALUTILITY_EXPORT Stream &operator<<(Stream &s, const std::ios_base::seekdir &seekdir);
+#endif
 TIALUTILITY_EXPORT Stream &operator<<(Stream &s, const std::exception &exception);
 TIALUTILITY_EXPORT Stream &operator<<(Stream &s, const std::experimental::string_view &string_view);
 

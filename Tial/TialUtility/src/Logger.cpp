@@ -145,6 +145,7 @@ Tial::Utility::Logger::operator<<(Stream &s, const std::type_index &index) {
 	return s << ABI::demangle(index.name()).c_str();
 }
 
+#if !BOOST_OS_WINDOWS
 Tial::Utility::Logger::Stream&
 Tial::Utility::Logger::operator<<(Stream &s, const std::ios_base::seekdir &seekdir) {
 	switch(seekdir) {
@@ -155,6 +156,7 @@ Tial::Utility::Logger::operator<<(Stream &s, const std::ios_base::seekdir &seekd
 	}
 	return s;
 }
+#endif
 
 Tial::Utility::Logger::Stream&
 Tial::Utility::Logger::operator<<(Stream &s, const std::exception &exception) {
