@@ -35,7 +35,7 @@
 #include "Logger.hpp"
 #include "Wildcards.hpp"
 
-#define TIAL_MODULE "Tial::Utility::ArgumentParser"
+#define TIAL_MODULE "Tial::Utility::Path"
 
 namespace Tial {
 namespace Utility {
