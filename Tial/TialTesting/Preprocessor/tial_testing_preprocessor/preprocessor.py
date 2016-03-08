@@ -135,7 +135,7 @@ public:
 	void _runTestCase() {
 		_caller([this](){
 			(*this)();
-		}, _caseName());
+		}, caseName());
 }
 '''
 		if not self.base:
@@ -166,6 +166,7 @@ class Preprocessor:
 	attr_throw_equal = 'Tial::Testing::Check::ThrowEqual'
 	attr_no_throw = 'Tial::Testing::Check::NoThrow'
 	attr_data = 'Tial::Testing::Data'
+	attr_data_base = 'Tial::Testing::DataBase'
 
 	res = regex.RegexCollection([
 		regex.Regex('hashline',
@@ -202,7 +203,7 @@ class Preprocessor:
 public:
 static constexpr ::std::experimental::string_view _name = "\g<cl_name>"_sv;
 ::Tial::Testing::Main::SingleCaseCaller _caller = nullptr;
-static constexpr ::std::experimental::string_view _caseName() {
+static constexpr ::std::experimental::string_view caseName() {
 	return _name;
 }
 '''
@@ -212,7 +213,7 @@ static constexpr ::std::experimental::string_view _caseName() {
 			r'''class /* [[\g<attr>]] */ \g<cl_name> \g<suffix> {
 public:
 ::Tial::Testing::Main::SingleCaseCaller _caller = nullptr;
-static constexpr ::std::experimental::string_view _caseName() {
+static constexpr ::std::experimental::string_view caseName() {
 	return Case::_name;
 }
 '''
@@ -298,6 +299,16 @@ static constexpr ::std::experimental::string_view _caseName() {
 			r'\[\[(?P<attr>[^\]]+Data)\("(?P<name>[^"]*)"\)\]\]\s+(?P<expr>[^;]+);',
 			r'/* [[\g<attr>("\g<name>")]] */ _runWithData("\g<name>"_sv, \g<expr>);'
 		),
+		regex.Regex('data_base',
+			r'\[\[(?P<attr>[^\]]+DataBase)\]\]\s+(?P<name>[^;]+);',
+			r'''
+template<typename DATA>
+void _runWithData(const std::experimental::string_view &name, const DATA &data) {
+	_caller([this, &data](){
+		(*this)(data);
+	}, std::string(this->caseName()) + "/" + name.to_string());
+}'''
+		),
 		regex.Regex('data',
 			r'\[\[(?P<attr>[^\]]+Data)\]\]\s+(?P<ret>\S+)\s+(?P<name>\S+)\(\)',
 			r'''
@@ -306,7 +317,7 @@ template<typename DATA>
 void _runWithData(const std::experimental::string_view &name, const DATA &data) {
 	_caller([this, &data](){
 		(*this)(data);
-	}, std::string(this->_name) + "/" + name.to_string());
+	}, std::string(this->caseName()) + "/" + name.to_string());
 }
 
 /* [[\g<attr>]] */ \g<ret> \g<name>()'''
@@ -396,7 +407,7 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 			else:
 				replacement = regex.regex.sub(replacement, original)
 				#self.source_line += self.source.count('\n', self.last_pos, b)
-				point_info = '(::Tial::Testing::Check::PointInfo{{"{file}", {line}, _caseName()}})'.format(
+				point_info = '(::Tial::Testing::Check::PointInfo{{"{file}", {line}, caseName()}})'.format(
 					file=utils.escape_filename(str(self.infile), True),
 					line=self.source_line
 				)
@@ -644,6 +655,15 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 							raise Exception('Unknown attribute: '+match.group('attr'))
 						if not isinstance(self.blocks_stack[-1], Block):
 							self.blocks_stack[-1].has_data = match.group('name')
+					elif regex.name == 'data_base':
+						if not self.check_attr(match.group('attr'), self.attr_data_base):
+							raise Exception('Unknown attribute: '+match.group('attr'))
+						if not isinstance(self.blocks_stack[-1], Block):
+							function = match.group('name').split('::')
+							self.blocks_stack[-1].has_data = 'static_cast<{class_name}&>(*this)._caller = _caller;static_cast<{class_name}&>(*this).{function_name}'.format(
+								class_name='::'.join(function[:-1]),
+								function_name=function[-1]
+							)
 					elif regex.name == 'brace_open':
 						self.blocks_stack.append(Block(match.start(), match.end(), self.source_line+1, match.groups()))
 						self.dump_stack()

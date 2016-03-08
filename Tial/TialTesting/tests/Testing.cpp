@@ -281,6 +281,32 @@ namespace [[Testing::Suite]] DataTests {
 			[[Check::Verify]] d.first == d.second;
 		}
 	};
+
+	template<typename Case>
+	class [[Testing::CaseBase]] BaseWithData {
+	public:
+		[[Testing::Data]] void data() {
+			[[Testing::Data("1")]] std::string{"1 SubclassWithoutData"};
+			[[Testing::Data("2")]] std::string{"2 SubclassWithoutData"};
+			[[Testing::Data("3")]] std::string{"3 SubclassWithoutData"};
+		}
+
+		void operator()(const std::string &data) {
+			static unsigned int call = 0;
+			++call;
+			[[Check::Verify]] caseName() == "SubclassWithoutData";
+			[[Check::Verify]] (static_cast<Case&>(*this).castItForMe(call)) == data;
+		}
+	};
+
+	class [[Testing::Case]] SubclassWithoutData: public BaseWithData<SubclassWithoutData> {
+	public:
+		[[Testing::DataBase]] BaseWithData<SubclassWithoutData>::data;
+
+		std::string castItForMe(const unsigned int value) {
+			return std::to_string(value)+" "+caseName().to_string();
+		}
+	};
 }
 
 namespace [[Testing::Suite]] Internals {
@@ -296,7 +322,7 @@ namespace [[Testing::Suite]] Internals {
 
 	class [[Testing::Case]] LineNoInGeneratedFile {
 		void operator()() {
-			[[Check::Verify]] __LINE__ == 299;
+			[[Check::Verify]] __LINE__ == 325;
 		}
 	};
 }
