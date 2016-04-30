@@ -165,7 +165,8 @@ class Preprocessor:
 	attr_throw_exact = 'Tial::Testing::Check::ThrowExact'
 	attr_throw_equal = 'Tial::Testing::Check::ThrowEqual'
 	attr_no_throw = 'Tial::Testing::Check::NoThrow'
-	attr_data = 'Tial::Testing::Data'
+	attr_data_set = 'Tial::Testing::DataSet'
+	attr_data_function = 'Tial::Testing::DataFunction'
 	attr_data_base = 'Tial::Testing::DataBase'
 
 	res = regex.RegexCollection([
@@ -295,9 +296,13 @@ static constexpr ::std::experimental::string_view caseName() {
 			),
 			True
 		),
-		regex.Regex('data_with_name',
-			r'\[\[(?P<attr>[^\]]+Data)\("(?P<name>[^"]*)"\)\]\]\s+(?P<expr>[^;]+);',
-			r'/* [[\g<attr>("\g<name>")]] */ _runWithData("\g<name>"_sv, \g<expr>);'
+		regex.Regex('data_set',
+			r'\[\[(?P<attr>[^\]]+DataSet)\((?P<name>.*?)\)\]\]\s+(?P<expr>[^;]+);',
+			lambda match: r'/* [[{attr}({name})]] */ _runWithData({name}, {expr});'.format(
+				attr=match.group('attr'),
+				name=(match.group('name') if len(match.group('name')) != 0 else '""'),
+				expr=match.group('expr')
+			)
 		),
 		regex.Regex('data_base',
 			r'\[\[(?P<attr>[^\]]+DataBase)\]\]\s+(?P<name>[^;]+);',
@@ -309,8 +314,8 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 	}, std::string(this->caseName()) + "/" + name.to_string());
 }'''
 		),
-		regex.Regex('data',
-			r'\[\[(?P<attr>[^\]]+Data)\]\]\s+(?P<ret>\S+)\s+(?P<name>\S+)\(\)',
+		regex.Regex('data_function',
+			r'\[\[(?P<attr>[^\]]+DataFunction)\]\]\s+(?P<ret>\S+)\s+(?P<name>\S+)\(\)',
 			r'''
 
 template<typename DATA>
@@ -650,11 +655,14 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 					elif regex.name == 'no_throw':
 						if not self.check_attr(match.group('attr'), self.attr_no_throw):
 							raise Exception('Unknown attribute: '+match.group('attr'))
-					elif regex.name == 'data' or regex.name == 'data_with_name':
-						if not self.check_attr(match.group('attr'), self.attr_data):
+					elif regex.name == 'data_function':
+						if not self.check_attr(match.group('attr'), self.attr_data_function):
 							raise Exception('Unknown attribute: '+match.group('attr'))
 						if not isinstance(self.blocks_stack[-1], Block):
 							self.blocks_stack[-1].has_data = match.group('name')
+					elif regex.name == 'data_set':
+						if not self.check_attr(match.group('attr'), self.attr_data_set):
+							raise Exception('Unknown attribute: '+match.group('attr'))
 					elif regex.name == 'data_base':
 						if not self.check_attr(match.group('attr'), self.attr_data_base):
 							raise Exception('Unknown attribute: '+match.group('attr'))

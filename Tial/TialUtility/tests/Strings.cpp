@@ -38,13 +38,13 @@ public:
 		std::string input, output;
 	};
 
-	[[Testing::Data]] void data() {
-		[[Testing::Data("no escapes")]] Data{"abcd", "abcd"};
-		[[Testing::Data("mixed")]] Data{
+	[[Testing::DataFunction]] void data() {
+		[[Testing::DataSet("no escapes")]] Data{"abcd", "abcd"};
+		[[Testing::DataSet("mixed")]] Data{
 				"\x0\x1\x2\x1d\x1e\x1f 0123abcdABCD\x7F\x80\x81\xFD\xFE\xFF"s,
 				"\\x0\\x1\\x2\\x1d\\x1e\\x1f 0123abcdABCD\\x7f\\x80\\x81\\xfd\\xfe\\xff"
 		};
-		[[Testing::Data("only escapes")]] Data{
+		[[Testing::DataSet("only escapes")]] Data{
 				"\x0\x1\x2\x1d\x1e\x1f\x7F\x80\x81\xFD\xFE\xFF"s,
 				"\\x0\\x1\\x2\\x1d\\x1e\\x1f\\x7f\\x80\\x81\\xfd\\xfe\\xff"
 		};

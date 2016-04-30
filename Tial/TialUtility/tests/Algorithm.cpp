@@ -48,11 +48,11 @@ public:
 		std::function<bool(const char &ch)> predicate;
 	};
 
-	[[Testing::Data]] void data() {
-		[[Testing::Data("no spaces")]] Data{"Alan", "Alan", defaultStripPredicate<char>};
-		[[Testing::Data("left spaces")]] Data{"  Brad", "Brad", myIsSpace};
-		[[Testing::Data("right spaces")]] Data{"Charlie     ", "Charlie", defaultStripPredicate<char>};
-		[[Testing::Data("both spaces")]] Data{"   Dolores  ", "Dolores", defaultStripPredicate<char>};
+	[[Testing::DataFunction]] void data() {
+		[[Testing::DataSet("no spaces")]] Data{"Alan", "Alan", defaultStripPredicate<char>};
+		[[Testing::DataSet("left spaces")]] Data{"  Brad", "Brad", myIsSpace};
+		[[Testing::DataSet("right spaces")]] Data{"Charlie     ", "Charlie", defaultStripPredicate<char>};
+		[[Testing::DataSet("both spaces")]] Data{"   Dolores  ", "Dolores", defaultStripPredicate<char>};
 	}
 
 	void operator()(const Data &data) {
@@ -106,70 +106,70 @@ public:
 #else
 #define DATA(...) Data{__VA_ARGS__}
 #endif
-	[[Testing::Data]] void data() {
-		[[Testing::Data("empty")]] DATA("", ' ',
-		                                {},
-		                                {});
-		[[Testing::Data("space only")]] DATA(" ", ' ',
-		                                     {"", ""},
-		                                     {});
-		[[Testing::Data("spaces only")]] DATA("  ", ' ',
-		                                      {"", "", ""},
-		                                      {});
-		[[Testing::Data("single letter")]] DATA("A", ' ',
-		                                        {"A"},
-		                                        {"A"});
-		[[Testing::Data("single letter with space on left")]] DATA(" A", ' ',
-		                                                           {"", "A"},
-		                                                           {"A"});
-		[[Testing::Data("single letter with space on right")]] DATA("A ", ' ',
-		                                                            {"A", ""},
-		                                                            {"A"});
-		[[Testing::Data("single letter with spaces on both sides")]] DATA(" A ", ' ',
-		                                                                  {"", "A", ""},
-		                                                                  {"A"});
-		[[Testing::Data("two letters with space on left")]] DATA(" AA", ' ',
-		                                                         {"", "AA"},
-		                                                         {"AA"});
-		[[Testing::Data("two letters with space on right")]] DATA("AA ", ' ',
-		                                                          {"AA", ""},
-		                                                          {"AA"});
-		[[Testing::Data("two letters with spaces on both sides")]] DATA(" AA ", ' ',
-		                                                                {"", "AA", ""},
-		                                                                {"AA"});
-		[[Testing::Data("simple splitting")]] DATA("Alan Alvey", ' ',
-		                                           {"Alan", "Alvey"},
-		                                           {"Alan", "Alvey"});
-		[[Testing::Data("with single prefix")]] DATA(" Alan Alvey", ' ',
-		                                             {"", "Alan", "Alvey"},
-		                                             {"Alan", "Alvey"});
-		[[Testing::Data("with double prefix")]] DATA("  Alan Alvey", ' ',
-		                                             {"", "", "Alan", "Alvey"},
-		                                             {"Alan", "Alvey"});
-		[[Testing::Data("with single suffix")]] DATA("Alan Alvey ", ' ',
-		                                             {"Alan", "Alvey", ""},
-		                                             {"Alan", "Alvey"});
-		[[Testing::Data("with double suffix")]] DATA("Alan Alvey  ", ' ',
-		                                             {"Alan", "Alvey", "", ""},
-		                                             {"Alan", "Alvey"});
-		[[Testing::Data("with middle empty")]] DATA("Alan  Alvey", ' ',
-		                                            {"Alan", "", "Alvey"},
-		                                            {"Alan", "Alvey"});
-		[[Testing::Data("three elements")]] DATA("Alan Alvey Johnson", ' ',
-		                                         {"Alan", "Alvey", "Johnson"},
-		                                         {"Alan", "Alvey", "Johnson"});
-		[[Testing::Data("three elements with space on left")]] DATA(" Alan Alvey Johnson", ' ',
-		                                                            {"", "Alan", "Alvey", "Johnson"},
-		                                                            {"Alan", "Alvey", "Johnson"});
-		[[Testing::Data("three elements with space on right")]] DATA("Alan Alvey Johnson ", ' ',
-		                                                             {"Alan", "Alvey", "Johnson", ""},
-		                                                             {"Alan", "Alvey", "Johnson"});
-		[[Testing::Data("three elements with spaces on both sides")]] DATA(" Alan Alvey Johnson ", ' ',
-		                                                                   {"", "Alan", "Alvey", "Johnson", ""},
-		                                                                   {"Alan", "Alvey", "Johnson"});
-		[[Testing::Data("three elements with multiple spaces")]] DATA("Alan    Alvey  Johnson", ' ',
-		                                                              {"Alan", "", "", "", "Alvey", "", "Johnson"},
-		                                                              {"Alan", "Alvey", "Johnson"});
+	[[Testing::DataFunction]] void data() {
+		[[Testing::DataSet("empty")]] DATA("", ' ',
+		                                   {},
+		                                   {});
+		[[Testing::DataSet("space only")]] DATA(" ", ' ',
+		                                        {"", ""},
+		                                        {});
+		[[Testing::DataSet("spaces only")]] DATA("  ", ' ',
+		                                         {"", "", ""},
+		                                         {});
+		[[Testing::DataSet("single letter")]] DATA("A", ' ',
+		                                           {"A"},
+		                                           {"A"});
+		[[Testing::DataSet("single letter with space on left")]] DATA(" A", ' ',
+		                                                              {"", "A"},
+		                                                              {"A"});
+		[[Testing::DataSet("single letter with space on right")]] DATA("A ", ' ',
+		                                                               {"A", ""},
+		                                                               {"A"});
+		[[Testing::DataSet("single letter with spaces on both sides")]] DATA(" A ", ' ',
+		                                                                     {"", "A", ""},
+		                                                                     {"A"});
+		[[Testing::DataSet("two letters with space on left")]] DATA(" AA", ' ',
+		                                                            {"", "AA"},
+		                                                            {"AA"});
+		[[Testing::DataSet("two letters with space on right")]] DATA("AA ", ' ',
+		                                                             {"AA", ""},
+		                                                             {"AA"});
+		[[Testing::DataSet("two letters with spaces on both sides")]] DATA(" AA ", ' ',
+		                                                                   {"", "AA", ""},
+		                                                                   {"AA"});
+		[[Testing::DataSet("simple splitting")]] DATA("Alan Alvey", ' ',
+		                                              {"Alan", "Alvey"},
+		                                              {"Alan", "Alvey"});
+		[[Testing::DataSet("with single prefix")]] DATA(" Alan Alvey", ' ',
+		                                                {"", "Alan", "Alvey"},
+		                                                {"Alan", "Alvey"});
+		[[Testing::DataSet("with double prefix")]] DATA("  Alan Alvey", ' ',
+		                                                {"", "", "Alan", "Alvey"},
+		                                                {"Alan", "Alvey"});
+		[[Testing::DataSet("with single suffix")]] DATA("Alan Alvey ", ' ',
+		                                                {"Alan", "Alvey", ""},
+		                                                {"Alan", "Alvey"});
+		[[Testing::DataSet("with double suffix")]] DATA("Alan Alvey  ", ' ',
+		                                                {"Alan", "Alvey", "", ""},
+		                                                {"Alan", "Alvey"});
+		[[Testing::DataSet("with middle empty")]] DATA("Alan  Alvey", ' ',
+		                                               {"Alan", "", "Alvey"},
+		                                               {"Alan", "Alvey"});
+		[[Testing::DataSet("three elements")]] DATA("Alan Alvey Johnson", ' ',
+		                                            {"Alan", "Alvey", "Johnson"},
+		                                            {"Alan", "Alvey", "Johnson"});
+		[[Testing::DataSet("three elements with space on left")]] DATA(" Alan Alvey Johnson", ' ',
+		                                                               {"", "Alan", "Alvey", "Johnson"},
+		                                                               {"Alan", "Alvey", "Johnson"});
+		[[Testing::DataSet("three elements with space on right")]] DATA("Alan Alvey Johnson ", ' ',
+		                                                                {"Alan", "Alvey", "Johnson", ""},
+		                                                                {"Alan", "Alvey", "Johnson"});
+		[[Testing::DataSet("three elements with spaces on both sides")]] DATA(" Alan Alvey Johnson ", ' ',
+		                                                                      {"", "Alan", "Alvey", "Johnson", ""},
+		                                                                      {"Alan", "Alvey", "Johnson"});
+		[[Testing::DataSet("three elements with multiple spaces")]] DATA("Alan    Alvey  Johnson", ' ',
+		                                                                 {"Alan", "", "", "", "Alvey", "", "Johnson"},
+		                                                                 {"Alan", "Alvey", "Johnson"});
 	}
 #undef DATA
 

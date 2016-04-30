@@ -42,10 +42,10 @@ public:
 		std::string string;
 	};
 
-	[[Testing::Data]] void data() {
-		[[Testing::Data("empty")]] Data{L"", ""};
-		[[Testing::Data("7 bit only")]] Data{L"Alan", "Alan"};
-		[[Testing::Data("unicode")]] Data{L"abc\U00010437", u8"abc\U00010437"};
+	[[Testing::DataFunction]] void data() {
+		[[Testing::DataSet("empty")]] Data{L"", ""};
+		[[Testing::DataSet("7 bit only")]] Data{L"Alan", "Alan"};
+		[[Testing::DataSet("unicode")]] Data{L"abc\U00010437", u8"abc\U00010437"};
 	}
 
 	void operator()(const Data &data) {

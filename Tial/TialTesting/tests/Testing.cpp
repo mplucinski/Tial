@@ -270,9 +270,20 @@ namespace [[Testing::Suite]] DataTests {
 			bool same;
 		};
 
-		[[Testing::Data]] void data() {
-			[[Testing::Data("two foos")]]    D{"foo"s, "foo", true};
-			[[Testing::Data("foo and bar")]] D{"foo"s, "bar", false};
+		std::string nameFromFunction() {
+			return "name from a function";
+		}
+
+		std::string nameFromFunction2(const std::string &name) {
+			return "name out of <" + name + ">";
+		}
+
+		[[Testing::DataFunction]] void data() {
+			[[Testing::DataSet()]]                         D{"foo"s, "foo", true};
+			[[Testing::DataSet("two foos")]]               D{"foo"s, "foo", true};
+			[[Testing::DataSet("foo and bar")]]            D{"foo"s, "bar", false};
+			[[Testing::DataSet(nameFromFunction())]]       D{"foo"s, "bar", false};
+			[[Testing::DataSet(nameFromFunction2("hey"))]] D{"foo"s, "bar", false};
 		}
 
 		void operator()(const D &d) {
@@ -285,10 +296,10 @@ namespace [[Testing::Suite]] DataTests {
 	template<typename Case>
 	class [[Testing::CaseBase]] BaseWithData {
 	public:
-		[[Testing::Data]] void data() {
-			[[Testing::Data("1")]] std::string{"1 SubclassWithoutData"};
-			[[Testing::Data("2")]] std::string{"2 SubclassWithoutData"};
-			[[Testing::Data("3")]] std::string{"3 SubclassWithoutData"};
+		[[Testing::DataFunction]] void data() {
+			[[Testing::DataSet("1")]] std::string{"1 SubclassWithoutData"};
+			[[Testing::DataSet("2")]] std::string{"2 SubclassWithoutData"};
+			[[Testing::DataSet("3")]] std::string{"3 SubclassWithoutData"};
 		}
 
 		void operator()(const std::string &data) {
@@ -322,7 +333,7 @@ namespace [[Testing::Suite]] Internals {
 
 	class [[Testing::Case]] LineNoInGeneratedFile {
 		void operator()() {
-			[[Check::Verify]] __LINE__ == 325;
+			[[Check::Verify]] __LINE__ == 336;
 		}
 	};
 }

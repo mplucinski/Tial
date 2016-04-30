@@ -41,11 +41,11 @@ public:
 	};
 
 
-	[[Testing::Data]] void data() {
-		[[Testing::Data("no elements")]] Data{{}, ""};
-		[[Testing::Data("one elements")]] Data{{"Alan"}, "Alan"};
-		[[Testing::Data("two elements")]] Data{{"Alan", "Alvey"}, "Alan, Alvey"};
-		[[Testing::Data("three elements")]] Data{{"Alan", "Alvey", "Johnson"}, "Alan, Alvey, Johnson"};
+	[[Testing::DataFunction]] void data() {
+		[[Testing::DataSet("no elements")]] Data{{}, ""};
+		[[Testing::DataSet("one elements")]] Data{{"Alan"}, "Alan"};
+		[[Testing::DataSet("two elements")]] Data{{"Alan", "Alvey"}, "Alan, Alvey"};
+		[[Testing::DataSet("three elements")]] Data{{"Alan", "Alvey", "Johnson"}, "Alan, Alvey, Johnson"};
 	}
 
 	void operator()(const Data &data) {
@@ -74,20 +74,20 @@ public:
 #else
 #define DATA(...) Data{__VA_ARGS__}
 #endif
-	[[Testing::Data]] void data() {
-		[[Testing::Data("no elements")]] DATA(
+	[[Testing::DataFunction]] void data() {
+		[[Testing::DataSet("no elements")]] DATA(
 				{},
 				{""}
 		);
-		[[Testing::Data("one elements")]] DATA(
+		[[Testing::DataSet("one elements")]] DATA(
 				{{"Great Britain", "London"}},
 				{"Great Britain: London"}
 		);
-		[[Testing::Data("two elements")]] DATA(
+		[[Testing::DataSet("two elements")]] DATA(
 				{{"Great Britain", "London"}, {"Germany", "Berlin"}},
 				{"Great Britain: London, Germany: Berlin", "Germany: Berlin, Great Britain: London"}
 		);
-		[[Testing::Data("three elements")]] DATA(
+		[[Testing::DataSet("three elements")]] DATA(
 				{{"Great Britain", "London"}, {"Germany", "Berlin"}, {"France", "Paris"}},
 				{
 					"Great Britain: London, Germany: Berlin, France: Paris",
@@ -117,11 +117,11 @@ class [[Testing::Case]] Intendation {
 		std::string result;
 	};
 
-	[[Testing::Data]] void data() {
-		[[Testing::Data("0")]] Data{0, ""};
-		[[Testing::Data("1")]] Data{1, " "};
-		[[Testing::Data("2")]] Data{2, "  "};
-		[[Testing::Data("3")]] Data{3, "   "};
+	[[Testing::DataFunction]] void data() {
+		[[Testing::DataSet("0")]] Data{0, ""};
+		[[Testing::DataSet("1")]] Data{1, " "};
+		[[Testing::DataSet("2")]] Data{2, "  "};
+		[[Testing::DataSet("3")]] Data{3, "   "};
 	}
 
 	void operator()(const Data &data) {
