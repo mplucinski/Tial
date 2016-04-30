@@ -493,11 +493,11 @@ void _runWithData(const std::experimental::string_view &name, const DATA &data) 
 		handler += '({point_info}, '
 		handler += '"'+utils.escape_string(expression, True)+'"'
 		if not e:
-			handler += ', ('+expression+')'
+			handler += ', (' + utils.escape_expr(expression, True) + ')'
 		else:
 			handler += ', "' + utils.escape_string(e, True) + '"'
-			handler += ', "' + utils.escape_string(l, True) + '", ' + l
-			handler += ', "' + utils.escape_string(r, True) + '", ' + r
+			handler += ', "' + utils.escape_string(l, True) + '", ' + utils.escape_expr(l, True)
+			handler += ', "' + utils.escape_string(r, True) + '", ' + utils.escape_expr(r, True)
 		handler += ')'
 		replacement = replacement + handler
 		return replacement + ';'
